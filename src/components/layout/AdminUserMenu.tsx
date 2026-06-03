@@ -1,4 +1,5 @@
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import {
   Avatar,
@@ -14,6 +15,7 @@ import {
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveProfilePicUrl } from '../../config/api'
+import { useLogoutMutation } from '../../store/api/medcoinAdminApi'
 import { useAppSelector } from '../../store/hooks'
 
 function userInitial(user: { name?: string; email?: string } | null) {
@@ -32,6 +34,7 @@ function roleLabel(role?: string) {
 export default function AdminUserMenu() {
   const navigate = useNavigate()
   const user = useAppSelector((s) => s.auth.user)
+  const [logout, { isLoading: loggingOut }] = useLogoutMutation()
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
   const open = Boolean(anchor)
 
@@ -123,6 +126,22 @@ export default function AdminUserMenu() {
             <LockOutlinedIcon fontSize="small" />
           </ListItemIcon>
           Change password
+        </MenuItem>
+
+        <Divider />
+
+        <MenuItem
+          disabled={loggingOut}
+          onClick={() => {
+            setAnchor(null)
+            void logout()
+          }}
+          sx={{ py: 1.25, color: 'error.main' }}
+        >
+          <ListItemIcon sx={{ color: 'error.main', minWidth: 36 }}>
+            <LogoutOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          {loggingOut ? 'Signing out…' : 'Log out'}
         </MenuItem>
       </Menu>
     </>

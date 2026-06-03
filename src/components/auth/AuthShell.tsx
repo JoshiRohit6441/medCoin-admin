@@ -3,6 +3,7 @@ import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlin
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import { Box, Stack, Typography, useMediaQuery, useTheme } from '@mui/material'
 import type { ReactNode } from 'react'
+import { BRAND_LOGO_SRC, BRAND_NAME } from '../../constants/brand'
 import { AUTH_NAVY } from './authTheme'
 
 const FEATURES = [
@@ -41,27 +42,25 @@ function BrandPanel({ compact = false }: { compact?: boolean }) {
       }}
     >
       <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: compact ? 2 : 4 }}>
+        <Box sx={{ mb: compact ? 2 : 4 }}>
           <Box
             component="img"
-            src="/medcoin-logo.png"
-            alt="medCoin"
+            src={BRAND_LOGO_SRC}
+            alt={BRAND_NAME}
             sx={{
-              width: 44,
-              height: 44,
+              width: '100%',
+              maxWidth: compact ? 220 : 280,
+              height: 'auto',
               objectFit: 'contain',
-              flexShrink: 0,
+              display: 'block',
             }}
           />
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              medCoin
-            </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.75 }}>
+          {!compact ? (
+            <Typography variant="caption" sx={{ opacity: 0.75, mt: 1, display: 'block' }}>
               Painel administrativo
             </Typography>
-          </Box>
-        </Stack>
+          ) : null}
+        </Box>
 
         {!compact ? (
           <>
@@ -119,7 +118,7 @@ function BrandPanel({ compact = false }: { compact?: boolean }) {
       </Box>
 
       <Typography variant="caption" sx={{ opacity: 0.5, mt: compact ? 2 : 4, display: 'block' }}>
-        © {new Date().getFullYear()} medCoin. Todos os direitos reservados.
+        © {new Date().getFullYear()} MEDCOIN.AI. Todos os direitos reservados.
       </Typography>
     </Box>
   )

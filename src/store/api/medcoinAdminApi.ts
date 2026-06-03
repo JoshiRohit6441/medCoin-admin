@@ -11,6 +11,8 @@ import type {
   AdminUser,
   ApiEnvelope,
   Consultation,
+  DoctorMeeting,
+  MeetingsSummary,
   ListResponse,
   LoginResponse,
   Patient,
@@ -73,6 +75,7 @@ export const medcoinAdminApi = createApi({
   tagTypes: [
     'Patient',
     'Consultation',
+    'Meeting',
     'Transaction',
     'Staff',
     'Severity',
@@ -274,6 +277,40 @@ export const medcoinAdminApi = createApi({
     getConsultation: builder.query<{ item: Consultation }, string>({
       query: (id) => `/consultations/${id}`,
       providesTags: (_r, _e, id) => [{ type: 'Consultation', id }],
+    }),
+    getMeetingsSummary: builder.query<MeetingsSummary, void>({
+      query: () => '/meetings/summary',
+      providesTags: ['Meeting'],
+    }),
+    listMeetings: builder.query<
+      ListResponse<DoctorMeeting>,
+      {
+        page?: number
+        limit?: number
+        sortBy?: string
+        sortOrder?: string
+        timing?: 'upcoming' | 'past' | 'all'
+        state?: string
+        severity?: string
+        appointmentFrom?: string
+        appointmentTo?: string
+        bookingCode?: string
+        search?: string
+        q?: string
+        patientName?: string
+      } | void
+    >({
+      query: (params) => ({ url: '/meetings', params: params ?? {} }),
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.items.map((m) => ({
+                type: 'Meeting' as const,
+                id: m._id,
+              })),
+              { type: 'Meeting', id: 'LIST' },
+            ]
+          : [{ type: 'Meeting', id: 'LIST' }],
     }),
     getTransactionStats: builder.query<TransactionStats, void>({
       query: () => '/transactions/stats',
@@ -508,6 +545,8 @@ export const {
   useGetPatientQuery,
   useListConsultationsQuery,
   useGetConsultationQuery,
+  useGetMeetingsSummaryQuery,
+  useListMeetingsQuery,
   useGetTransactionStatsQuery,
   useListTransactionsQuery,
   useGetTransactionQuery,

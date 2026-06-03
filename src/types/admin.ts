@@ -202,6 +202,8 @@ export type AdminOverview = {
     paymentPending: number
     consultationsToday: number
     consultationsThisWeek: number
+    upcomingMeetings: number
+    pastMeetings: number
   }
   payments: {
     approved: number
@@ -221,6 +223,16 @@ export type AdminOverview = {
   }[]
   consultationsBySeverity: { severity: string; count: number }[]
   consultationsByDay: { date: string; label: string; count: number }[]
+}
+
+export type DoctorMeeting = Consultation & {
+  meetingTiming?: 'upcoming' | 'past' | 'unknown'
+}
+
+export type MeetingsSummary = {
+  upcoming: number
+  past: number
+  total: number
 }
 
 export type ListQueryParams = {

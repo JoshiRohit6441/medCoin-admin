@@ -9,6 +9,7 @@ import LoginPage from './components/auth/LoginPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import ResetPasswordPage from './components/auth/ResetPasswordPage'
 import ConsultationsPage from './features/consultations/ConsultationsPage'
+import MeetingsPage from './features/meetings/MeetingsPage'
 import TransactionsPage from './features/transactions/TransactionsPage'
 import DashboardPage from './features/dashboard/DashboardPage'
 import PatientsPage from './features/patients/PatientsPage'
@@ -67,6 +68,7 @@ export default function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="patients" element={<PatientsPage />} />
                 <Route path="consultations" element={<ConsultationsPage />} />
+                <Route path="meetings" element={<MeetingsPage />} />
                 <Route path="transactions" element={<TransactionsPage />} />
                 <Route path="severities" element={<SeveritiesPage />} />
                 <Route path="profile" element={<MyProfilePage />} />

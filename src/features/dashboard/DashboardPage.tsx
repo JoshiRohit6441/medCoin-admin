@@ -1,4 +1,5 @@
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined'
@@ -188,7 +189,7 @@ export default function DashboardPage() {
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
+            lg: 'repeat(5, 1fr)',
           },
         }}
       >
@@ -222,6 +223,14 @@ export default function DashboardPage() {
           subtitle={`${completionRate}% reached booking+`}
           icon={<CheckCircleOutlinedIcon />}
           accent="#059669"
+        />
+        <KpiCard
+          title="Upcoming doctor meetings"
+          value={c?.upcomingMeetings ?? 0}
+          subtitle={`${c?.pastMeetings ?? 0} completed (past)`}
+          icon={<EventAvailableOutlinedIcon />}
+          accent="#0d9488"
+          to="/meetings?timing=upcoming"
         />
       </Box>
 

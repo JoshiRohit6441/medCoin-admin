@@ -2,6 +2,7 @@ import {
   Alert,
   Box,
   Button,
+  Divider,
   Drawer,
   Stack,
   Typography,
@@ -40,6 +41,56 @@ function patientAgeLabel(row: Consultation): string {
     return String((p as { age: number }).age)
   }
   return '—'
+}
+
+function TriageConversation({
+  messages,
+}: {
+  messages?: { role: string; content: string }[]
+}) {
+  const list = (messages ?? []).filter((m) => String(m.content || '').trim())
+  if (!list.length) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        No triage messages recorded.
+      </Typography>
+    )
+  }
+
+  return (
+    <Stack spacing={1.25}>
+      {list.map((m, index) => {
+        const isAssistant = m.role === 'assistant'
+        return (
+          <Box
+            key={`${index}-${m.role}`}
+            sx={{
+              p: 1.25,
+              borderRadius: 1,
+              bgcolor: isAssistant ? 'grey.50' : 'action.hover',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: isAssistant ? 'primary.main' : 'text.secondary',
+                display: 'block',
+                mb: 0.5,
+              }}
+            >
+              {isAssistant ? 'Sofia (question)' : 'Patient (answer)'}
+            </Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+              {m.content}
+            </Typography>
+          </Box>
+        )
+      })}
+    </Stack>
+  )
 }
 
 const columns: GridColDef<Consultation>[] = [
@@ -182,7 +233,7 @@ export default function ConsultationsPage() {
           setSelectedSerial(null)
         }}
       >
-        <Box sx={{ width: 420, p: 2, maxWidth: '100vw' }}>
+        <Box sx={{ width: { xs: '100vw', sm: 480 }, p: 2, maxWidth: '100vw' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
             Consultation detail
           </Typography>
@@ -222,6 +273,18 @@ export default function ConsultationsPage() {
                 <strong>Payment ID:</strong>{' '}
                 {detailQuery.data?.item.mercadoPagoPaymentId || '—'}
               </div>
+
+              <Divider sx={{ my: 1 }} />
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Triage questions &amp; answers
+                </Typography>
+                <TriageConversation messages={detailQuery.data?.item.messages} />
+              </Box>
+
+              <Divider sx={{ my: 1 }} />
+
               <div>
                 <strong>AI summary:</strong>
                 <Box sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>

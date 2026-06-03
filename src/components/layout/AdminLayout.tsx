@@ -2,6 +2,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
 import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
@@ -23,6 +24,7 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useLocation, Outlet, NavLink } from 'react-router-dom'
+import { BRAND_LOGO_SRC, BRAND_NAME } from '../../constants/brand'
 import { useLogoutMutation } from '../../store/api/medcoinAdminApi'
 import AdminUserMenu from './AdminUserMenu'
 
@@ -30,113 +32,39 @@ const DRAWER_EXPANDED = 240
 const DRAWER_COLLAPSED = 72
 const SIDEBAR_STORAGE_KEY = 'medcoin_admin_sidebar_collapsed'
 
-const BRAND_GOLD = '#c9a227'
-
 function SidebarBrand({ collapsed }: { collapsed: boolean }) {
+  const logo = (
+    <Box
+      component="img"
+      src={BRAND_LOGO_SRC}
+      alt={BRAND_NAME}
+      sx={{
+        height: collapsed ? 34 : 42,
+        width: 'auto',
+        maxWidth: collapsed ? 48 : 176,
+        objectFit: 'contain',
+        flexShrink: 0,
+        display: 'block',
+      }}
+    />
+  )
+
   if (collapsed) {
     return (
-      <Tooltip title="MedCoin Health" placement="right">
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(145deg, #0f2744 0%, #1a3a5c 55%, #0d9488 100%)',
-            boxShadow: '0 4px 14px rgba(15, 39, 68, 0.22)',
-            flexShrink: 0,
-          }}
-        >
-          <Typography
-            component="span"
-            sx={{
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              letterSpacing: '0.06em',
-              lineHeight: 1,
-            }}
-          >
-            MC
-          </Typography>
-        </Box>
+      <Tooltip title={BRAND_NAME} placement="right">
+        {logo}
       </Tooltip>
     )
   }
 
-  return (
-    <Box
-      sx={{
-        textAlign: 'center',
-        px: 0.5,
-        py: 0.25,
-        maxWidth: 168,
-        flexShrink: 0,
-      }}
-    >
-      <Typography
-        component="span"
-        sx={{
-          display: 'block',
-          fontSize: '1.2rem',
-          fontWeight: 800,
-          lineHeight: 1.05,
-          letterSpacing: '-0.02em',
-          background: 'linear-gradient(120deg, #0f2744 0%, #1a3a5c 45%, #0d9488 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}
-      >
-        MedCoin
-      </Typography>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 0.75,
-          mt: 0.4,
-        }}
-      >
-        <Box
-          sx={{
-            height: 1,
-            width: 20,
-            background: `linear-gradient(90deg, transparent, ${BRAND_GOLD}, transparent)`,
-          }}
-        />
-        <Typography
-          component="span"
-          sx={{
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            fontStyle: 'italic',
-            letterSpacing: '0.06em',
-            color: BRAND_GOLD,
-            lineHeight: 1,
-          }}
-        >
-          Health
-        </Typography>
-        <Box
-          sx={{
-            height: 1,
-            width: 20,
-            background: `linear-gradient(90deg, transparent, ${BRAND_GOLD}, transparent)`,
-          }}
-        />
-      </Box>
-    </Box>
-  )
+  return logo
 }
 
 const nav = [
   { to: '/', label: 'Dashboard', end: true, icon: DashboardOutlinedIcon },
   { to: '/patients', label: 'Patients', icon: GroupsOutlinedIcon },
   { to: '/consultations', label: 'Consultations', icon: LocalHospitalOutlinedIcon },
+  { to: '/meetings', label: 'Doctor meetings', icon: EventAvailableOutlinedIcon },
   { to: '/transactions', label: 'Transactions', icon: PaymentsOutlinedIcon },
   { to: '/severities', label: 'Severity levels', icon: TuneOutlinedIcon },
   { to: '/settings', label: 'Settings', icon: SettingsOutlinedIcon },
@@ -209,7 +137,7 @@ export default function AdminLayout() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: collapsed ? 0.5 : 0,
-            minHeight: collapsed ? 56 : 64,
+            minHeight: collapsed ? 56 : 60,
             flexShrink: 0,
           }}
         >
