@@ -1,7 +1,7 @@
 import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined'
 import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
-import { Box, Stack, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { Box, Link, Stack, Typography, useMediaQuery, useTheme } from '@mui/material'
 import type { ReactNode } from 'react'
 import { BRAND_LOGO_SRC, BRAND_NAME } from '../../constants/brand'
 import { AUTH_NAVY } from './authTheme'
@@ -117,9 +117,23 @@ function BrandPanel({ compact = false }: { compact?: boolean }) {
         )}
       </Box>
 
-      <Typography variant="caption" sx={{ opacity: 0.5, mt: compact ? 2 : 4, display: 'block' }}>
-        © {new Date().getFullYear()} MEDCOIN.AI. Todos os direitos reservados.
-      </Typography>
+      <Box sx={{ mt: compact ? 2 : 4 }}>
+        <Typography variant="caption" sx={{ opacity: 0.5, display: 'block' }}>
+          © {new Date().getFullYear()} MEDCOIN.AI. All rights reserved.
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.5, display: 'block', mt: 0.75 }}>
+          Developed by{' '}
+          <Link
+            href="https://bytelogicindia.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+            sx={{ color: 'inherit', fontWeight: 600 }}
+          >
+            Bytelogic Technologies
+          </Link>
+        </Typography>
+      </Box>
     </Box>
   )
 }
