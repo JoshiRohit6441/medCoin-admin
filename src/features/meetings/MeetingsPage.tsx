@@ -83,7 +83,12 @@ function MeetLinkActions({
   }
 
   return (
-    <Stack direction="row" spacing={0.25} alignItems="center" onClick={(e) => e.stopPropagation()}>
+    <Stack
+      direction="row"
+      spacing={0.25}
+      sx={{ alignItems: 'center' }}
+      onClick={(e) => e.stopPropagation()}
+    >
       <Tooltip title="Open meeting">
         <IconButton
           size="small"

@@ -1,23 +1,26 @@
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Provider } from 'react-redux'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AdminLayout from './components/layout/AdminLayout'
+import PageLoader from './components/layout/PageLoader'
 import GlobalModal from './components/modals/GlobalModal'
-import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import GuestRoute from './components/auth/GuestRoute'
-import LoginPage from './components/auth/LoginPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
-import ResetPasswordPage from './components/auth/ResetPasswordPage'
-import ConsultationsPage from './features/consultations/ConsultationsPage'
-import MeetingsPage from './features/meetings/MeetingsPage'
-import TransactionsPage from './features/transactions/TransactionsPage'
-import DashboardPage from './features/dashboard/DashboardPage'
-import PatientsPage from './features/patients/PatientsPage'
-import SeveritiesPage from './features/severities/SeveritiesPage'
-import ChangePasswordPage from './features/settings/ChangePasswordPage'
-import SettingsPage from './features/settings/SettingsPage'
-import MyProfilePage from './features/profile/MyProfilePage'
 import { store } from './store'
+
+const LoginPage = lazy(() => import('./components/auth/LoginPage'))
+const ForgotPasswordPage = lazy(() => import('./components/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./components/auth/ResetPasswordPage'))
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'))
+const PatientsPage = lazy(() => import('./features/patients/PatientsPage'))
+const ConsultationsPage = lazy(() => import('./features/consultations/ConsultationsPage'))
+const MeetingsPage = lazy(() => import('./features/meetings/MeetingsPage'))
+const TransactionsPage = lazy(() => import('./features/transactions/TransactionsPage'))
+const SeveritiesPage = lazy(() => import('./features/severities/SeveritiesPage'))
+const MyProfilePage = lazy(() => import('./features/profile/MyProfilePage'))
+const ChangePasswordPage = lazy(() => import('./features/settings/ChangePasswordPage'))
+const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 
 const theme = createTheme({
   palette: {
@@ -32,6 +35,10 @@ const theme = createTheme({
   },
 })
 
+function Lazy({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>
+}
+
 export default function App() {
   return (
     <Provider store={store}>
@@ -43,7 +50,9 @@ export default function App() {
               path="/login"
               element={
                 <GuestRoute>
-                  <LoginPage />
+                  <Lazy>
+                    <LoginPage />
+                  </Lazy>
                 </GuestRoute>
               }
             />
@@ -51,7 +60,9 @@ export default function App() {
               path="/forgot-password"
               element={
                 <GuestRoute>
-                  <ForgotPasswordPage />
+                  <Lazy>
+                    <ForgotPasswordPage />
+                  </Lazy>
                 </GuestRoute>
               }
             />
@@ -59,21 +70,86 @@ export default function App() {
               path="/reset-password"
               element={
                 <GuestRoute>
-                  <ResetPasswordPage />
+                  <Lazy>
+                    <ResetPasswordPage />
+                  </Lazy>
                 </GuestRoute>
               }
             />
             <Route element={<ProtectedRoute />}>
               <Route element={<AdminLayout />}>
-                <Route index element={<DashboardPage />} />
-                <Route path="patients" element={<PatientsPage />} />
-                <Route path="consultations" element={<ConsultationsPage />} />
-                <Route path="meetings" element={<MeetingsPage />} />
-                <Route path="transactions" element={<TransactionsPage />} />
-                <Route path="severities" element={<SeveritiesPage />} />
-                <Route path="profile" element={<MyProfilePage />} />
-                <Route path="change-password" element={<ChangePasswordPage />} />
-                <Route path="settings" element={<SettingsPage />} />
+                <Route
+                  index
+                  element={
+                    <Lazy>
+                      <DashboardPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="patients"
+                  element={
+                    <Lazy>
+                      <PatientsPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="consultations"
+                  element={
+                    <Lazy>
+                      <ConsultationsPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="meetings"
+                  element={
+                    <Lazy>
+                      <MeetingsPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="transactions"
+                  element={
+                    <Lazy>
+                      <TransactionsPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="severities"
+                  element={
+                    <Lazy>
+                      <SeveritiesPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="profile"
+                  element={
+                    <Lazy>
+                      <MyProfilePage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="change-password"
+                  element={
+                    <Lazy>
+                      <ChangePasswordPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <Lazy>
+                      <SettingsPage />
+                    </Lazy>
+                  }
+                />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
