@@ -1,8 +1,8 @@
-import type { GridColDef } from '@mui/x-data-grid'
+import type { GridColDef, GridValidRowModel } from '@mui/x-data-grid'
 
 export const SERIAL_FIELD = '__serial'
 
-export function serialColumn<T>(): GridColDef<T> {
+export function serialColumn<T extends GridValidRowModel = GridValidRowModel>(): GridColDef<T> {
   return {
     field: SERIAL_FIELD,
     headerName: '#',

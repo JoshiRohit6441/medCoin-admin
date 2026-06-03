@@ -27,7 +27,10 @@ function Toolbar() {
 
 function patientField(row: Consultation, key: 'phone' | 'name'): string {
   const p = row.patient
-  if (p && typeof p === 'object' && key in p) return String((p as Record<string, string>)[key] ?? '')
+  if (p && typeof p === 'object') {
+    const v = p[key]
+    return v != null ? String(v) : ''
+  }
   return ''
 }
 

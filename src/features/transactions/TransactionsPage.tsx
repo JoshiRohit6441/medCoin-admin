@@ -34,8 +34,9 @@ function Toolbar() {
 
 function patientField(row: Transaction, key: 'phone' | 'name'): string {
   const p = row.patient
-  if (p && typeof p === 'object' && key in p) return String((p as Record<string, string>)[key] ?? '')
-  return ''
+  if (!p) return ''
+  const v = p[key]
+  return v != null ? String(v) : ''
 }
 
 function paymentChipColor(

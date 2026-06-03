@@ -20,7 +20,6 @@ import {
   useCreateSeverityMutation,
   useDeleteSeverityMutation,
   useListSeveritiesQuery,
-  useSeedDefaultSeveritiesMutation,
   useUpdateSeverityMutation,
 } from '../../store/api/medcoinAdminApi'
 import type { SeverityLevel } from '../../types/admin'
@@ -62,7 +61,6 @@ export default function SeveritiesPage() {
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'asc',
   })
 
-  const [seed, seedState] = useSeedDefaultSeveritiesMutation()
   const [createSeverity, createState] = useCreateSeverityMutation()
   const [updateSeverity, updateState] = useUpdateSeverityMutation()
   const [deleteSeverity, deleteState] = useDeleteSeverityMutation()
@@ -194,21 +192,10 @@ export default function SeveritiesPage() {
         >
           Refresh
         </Button>
-        {/* <Button
-          size="small"
-          variant="outlined"
-          onClick={() => seed().unwrap().catch(() => {})}
-          disabled={seedState.isLoading}
-        >
-          Seed defaults
-        </Button> */}
         <Button size="small" variant="contained" onClick={openCreate}>
           Add level
         </Button>
       </Box>
-      {seedState.isError ? (
-        <Alert severity="error">{getErrorMessage(seedState.error)}</Alert>
-      ) : null}
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
       <Box sx={{ width: '100%', height: 520 }}>
         <DataGrid
