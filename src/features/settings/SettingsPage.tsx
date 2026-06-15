@@ -34,6 +34,14 @@ function formatPhoneDisplay(digits: string) {
   return d ? `+${d}` : '—'
 }
 
+function normalizeDoctorPhonesInput(raw: string) {
+  return raw
+    .split(/[,;\n]+/)
+    .map((part) => part.replace(/\D/g, ''))
+    .filter(Boolean)
+    .join(',')
+}
+
 export default function SettingsPage() {
   const { data: settingsData, isLoading: settingsLoading } = useGetSettingsQuery()
   const [updateSettings, updateState] = useUpdateSettingsMutation()
@@ -108,7 +116,7 @@ export default function SettingsPage() {
     if (!Number.isFinite(warnH) || warnH < 0.25) return
     try {
       await updateSettings({
-        doctorWhatsappPhone: doctorPhone.replace(/\D/g, ''),
+        doctorWhatsappPhone: normalizeDoctorPhonesInput(doctorPhone),
         consultationPriceAmount: amount,
         sessionExpiryHours: expiryH,
         sessionExpiryWarnHours: warnH,
@@ -165,10 +173,11 @@ export default function SettingsPage() {
                 <TextField
                   label="Doctor WhatsApp"
                   value={doctorPhone}
-                  onChange={(e) => setDoctorPhone(e.target.value.replace(/[^\d+]/g, ''))}
-                  helperText="Full number with country code, digits only (e.g. 5511999999999). Booking alerts go here."
+                  onChange={(e) => setDoctorPhone(e.target.value.replace(/[^\d,;\s]/g, ''))}
+                  helperText="Comma-separated numbers with country code, digits only (e.g. 5511999999999,917417435057). Booking alerts go to all."
                   fullWidth
                   size="small"
+                  placeholder="5511999999999,917417435057"
                 />
 
                 <TextField
@@ -182,6 +191,14 @@ export default function SettingsPage() {
                   size="small"
                 />
 
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={updateState.isLoading}
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  {updateState.isLoading ? 'Saving…' : 'Save consultation settings'}
+                </Button>
               </Stack>
             </Box>
           )}
