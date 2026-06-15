@@ -376,6 +376,21 @@ export const medcoinAdminApi = createApi({
         { type: 'Consultation', id },
       ],
     }),
+    mockCompleteTransactionPayment: builder.mutation<
+      { mock: Record<string, unknown>; item: Transaction },
+      string
+    >({
+      query: (id) => ({
+        url: `/transactions/${id}/mock-complete-payment`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_r, _e, id) => [
+        { type: 'Transaction', id },
+        { type: 'Transaction', id: 'LIST' },
+        { type: 'Consultation', id },
+        'Overview',
+      ],
+    }),
     listStaff: builder.query<
       ListResponse<StaffMember>,
       {
@@ -551,6 +566,7 @@ export const {
   useListTransactionsQuery,
   useGetTransactionQuery,
   useSyncTransactionPaymentMutation,
+  useMockCompleteTransactionPaymentMutation,
   useListStaffQuery,
   useGetStaffQuery,
   useListSeveritiesQuery,

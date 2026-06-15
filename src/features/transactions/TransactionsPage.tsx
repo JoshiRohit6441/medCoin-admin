@@ -18,6 +18,7 @@ import {
   useGetTransactionQuery,
   useGetTransactionStatsQuery,
   useListTransactionsQuery,
+  useMockCompleteTransactionPaymentMutation,
   useSyncTransactionPaymentMutation,
 } from '../../store/api/medcoinAdminApi'
 import type { Transaction } from '../../types/admin'
@@ -92,6 +93,8 @@ export default function TransactionsPage() {
 
   const detailQuery = useGetTransactionQuery(selectedId ?? '', { skip: !selectedId })
   const [syncPayment, syncState] = useSyncTransactionPaymentMutation()
+  const [mockCompletePayment, mockCompleteState] = useMockCompleteTransactionPaymentMutation()
+  const devMode = import.meta.env.DEV
 
   const rows = useMemo(
     () => withSerialNumbers(data?.items ?? [], paginationModel.page, paginationModel.pageSize),
@@ -369,8 +372,7 @@ export default function TransactionsPage() {
                   {item.aiSummary || '—'}
                 </Box>
               </div>
-              {(item.paymentStatus === 'processing' ||
-                item.paymentStatus === 'awaiting') && (
+              {item.paymentStatus === 'processing' ? (
                 <Button
                   size="small"
                   variant="contained"
@@ -381,7 +383,36 @@ export default function TransactionsPage() {
                 >
                   Sync payment from Mercado Pago
                 </Button>
-              )}
+              ) : null}
+              {devMode && item.paymentStatus === 'awaiting' ? (
+                <>
+                  <Alert severity="info" sx={{ mt: 0.5 }}>
+                    Development only — skips Mercado Pago sandbox and sends the Calendly link on
+                    WhatsApp.
+                  </Alert>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="warning"
+                    disabled={mockCompleteState.isLoading}
+                    onClick={() => {
+                      if (selectedId) void mockCompletePayment(selectedId)
+                    }}
+                  >
+                    {mockCompleteState.isLoading
+                      ? 'Marking complete…'
+                      : 'Mark payment completed (dev)'}
+                  </Button>
+                </>
+              ) : null}
+              {mockCompleteState.isError ? (
+                <Alert severity="error">{getErrorMessage(mockCompleteState.error)}</Alert>
+              ) : null}
+              {mockCompleteState.isSuccess ? (
+                <Alert severity="success">
+                  Payment marked complete. Calendly link sent on WhatsApp.
+                </Alert>
+              ) : null}
             </Stack>
           ) : null}
           <Button sx={{ mt: 2 }} onClick={() => setSelectedId(null)} fullWidth variant="outlined">
