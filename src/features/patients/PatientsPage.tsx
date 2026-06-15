@@ -2,15 +2,17 @@ import {
   Alert,
   Box,
   Button,
-  Drawer,
   Stack,
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
+import DetailDrawer from '../../components/layout/DetailDrawer'
+import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useGetPatientQuery, useListPatientsQuery } from '../../store/api/medcoinAdminApi'
 import type { Patient } from '../../types/admin'
+import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -50,9 +52,10 @@ const columns: GridColDef<Patient & { __serial?: number }>[] = [
 ]
 
 export default function PatientsPage() {
+  const isMobile = useIsMobile()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: isMobile ? 10 : 25,
   })
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'createdAt', sort: 'desc' },
@@ -89,10 +92,15 @@ export default function PatientsPage() {
         </Button>
       </Box>
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
-      <Box sx={{ width: '100%', height: 520 }}>
+      <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={rows}
           columns={columns}
+          columnVisibilityModel={
+            isMobile
+              ? { __serial: false, age: false, createdAt: false }
+              : undefined
+          }
           getRowId={(r) => r._id}
           loading={isLoading}
           rowCount={data?.pagination.total ?? 0}
@@ -121,29 +129,18 @@ export default function PatientsPage() {
           slotProps={{
             loadingOverlay: { variant: 'skeleton', noRowsVariant: 'skeleton' },
           }}
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            '& .MuiDataGrid-toolbarContainer': {
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            },
-          }}
+          sx={dataGridSx}
         />
       </Box>
 
-      <Drawer
-        anchor="right"
+      <DetailDrawer
         open={Boolean(selectedId)}
         onClose={() => {
           setSelectedId(null)
           setSelectedSerial(null)
         }}
+        title="Patient detail"
       >
-        <Box sx={{ width: 360, p: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Patient detail
-          </Typography>
           {!selectedId ? null : detailQuery.isLoading ? (
             <Typography variant="body2">Loading…</Typography>
           ) : detailQuery.isError ? (
@@ -181,8 +178,7 @@ export default function PatientsPage() {
           >
             Close
           </Button>
-        </Box>
-      </Drawer>
+      </DetailDrawer>
     </Stack>
   )
 }

@@ -6,7 +6,6 @@ import {
   Box,
   Button,
   Chip,
-  Drawer,
   FormControl,
   IconButton,
   InputLabel,
@@ -22,12 +21,15 @@ import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data
 import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import DetailDrawer from '../../components/layout/DetailDrawer'
+import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
   useGetConsultationQuery,
   useGetMeetingsSummaryQuery,
   useListMeetingsQuery,
 } from '../../store/api/medcoinAdminApi'
 import type { Consultation, DoctorMeeting } from '../../types/admin'
+import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -111,12 +113,13 @@ function MeetLinkActions({
 }
 
 export default function MeetingsPage() {
+  const isMobile = useIsMobile()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialTiming = searchParams.get('timing') === 'past' ? 'past' : searchParams.get('timing') === 'upcoming' ? 'upcoming' : 'all'
 
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: isMobile ? 10 : 25,
   })
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'appointmentStartAt', sort: 'asc' },
@@ -378,10 +381,22 @@ export default function MeetingsPage() {
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
 
-      <Box sx={{ width: '100%', height: 560 }}>
+      <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={rows}
           columns={columns}
+          columnVisibilityModel={
+            isMobile
+              ? {
+                  __serial: false,
+                  patientAge: false,
+                  severity: false,
+                  state: false,
+                  bookingCode: false,
+                  appointmentMeetingUrl: false,
+                }
+              : undefined
+          }
           getRowId={(r) => r._id}
           loading={isLoading}
           rowCount={data?.pagination.total ?? 0}
@@ -398,22 +413,18 @@ export default function MeetingsPage() {
           pageSizeOptions={[10, 25, 50]}
           density="compact"
           disableRowSelectionOnClick
-          sx={{ border: '1px solid', borderColor: 'divider' }}
+          sx={dataGridSx}
         />
       </Box>
 
-      <Drawer
-        anchor="right"
+      <DetailDrawer
         open={Boolean(selectedId)}
         onClose={() => {
           setSelectedId(null)
           setSelectedSerial(null)
         }}
+        title="Meeting detail"
       >
-        <Box sx={{ width: { xs: '100vw', sm: 440 }, p: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Meeting detail
-          </Typography>
           {!selectedId ? null : detailQuery.isLoading ? (
             <Typography variant="body2">Loading…</Typography>
           ) : detailQuery.isError ? (
@@ -454,7 +465,7 @@ export default function MeetingsPage() {
                 <strong>Booking code:</strong> {detailQuery.data?.item.bookingCode || '—'}
               </div>
               {detailQuery.data?.item.appointmentMeetingUrl ? (
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flexWrap: 'wrap' }}>
                   <Button
                     size="small"
                     variant="outlined"
@@ -497,8 +508,7 @@ export default function MeetingsPage() {
           >
             Close
           </Button>
-        </Box>
-      </Drawer>
+      </DetailDrawer>
 
       <Snackbar
         open={copySnackOpen}

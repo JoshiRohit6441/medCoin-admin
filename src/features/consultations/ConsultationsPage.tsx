@@ -3,18 +3,20 @@ import {
   Box,
   Button,
   Divider,
-  Drawer,
   Stack,
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
+import DetailDrawer from '../../components/layout/DetailDrawer'
+import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
   useGetConsultationQuery,
   useListConsultationsQuery,
 } from '../../store/api/medcoinAdminApi'
 import type { Consultation } from '../../types/admin'
+import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -145,9 +147,10 @@ const columns: GridColDef<Consultation>[] = [
 ]
 
 export default function ConsultationsPage() {
+  const isMobile = useIsMobile()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: isMobile ? 10 : 25,
   })
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'updatedAt', sort: 'desc' },
@@ -186,10 +189,21 @@ export default function ConsultationsPage() {
         Quick filter searches booking code (backend <code>bookingCode</code> query).
       </Typography>
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
-      <Box sx={{ width: '100%', height: 560 }}>
+      <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={rows}
           columns={columns}
+          columnVisibilityModel={
+            isMobile
+              ? {
+                  __serial: false,
+                  patientAge: false,
+                  patientPhone: false,
+                  bookingCode: false,
+                  updatedAt: false,
+                }
+              : undefined
+          }
           getRowId={(r) => r._id}
           loading={isLoading}
           rowCount={data?.pagination.total ?? 0}
@@ -214,29 +228,18 @@ export default function ConsultationsPage() {
           disableRowSelectionOnClick
           slots={{ toolbar: Toolbar }}
           showToolbar
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            '& .MuiDataGrid-toolbarContainer': {
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            },
-          }}
+          sx={dataGridSx}
         />
       </Box>
 
-      <Drawer
-        anchor="right"
+      <DetailDrawer
         open={Boolean(selectedId)}
         onClose={() => {
           setSelectedId(null)
           setSelectedSerial(null)
         }}
+        title="Consultation detail"
       >
-        <Box sx={{ width: { xs: '100vw', sm: 480 }, p: 2, maxWidth: '100vw' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Consultation detail
-          </Typography>
           {!selectedId ? null : detailQuery.isLoading ? (
             <Typography variant="body2">Loading…</Typography>
           ) : detailQuery.isError ? (
@@ -304,8 +307,7 @@ export default function ConsultationsPage() {
           >
             Close
           </Button>
-        </Box>
-      </Drawer>
+      </DetailDrawer>
     </Stack>
   )
 }

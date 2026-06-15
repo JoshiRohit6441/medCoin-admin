@@ -16,6 +16,7 @@ import {
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
+import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
   useCreateSeverityMutation,
   useDeleteSeverityMutation,
@@ -24,6 +25,7 @@ import {
 } from '../../store/api/medcoinAdminApi'
 import type { SeverityLevel } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const AI_KEYS = ['Low', 'Medium', 'High'] as const
@@ -45,6 +47,7 @@ const emptyForm: FormState = {
 }
 
 export default function SeveritiesPage() {
+  const isMobile = useIsMobile()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 25,
@@ -197,10 +200,11 @@ export default function SeveritiesPage() {
         </Button>
       </Box>
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
-      <Box sx={{ width: '100%', height: 520 }}>
+      <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={rows}
           columns={columns}
+          columnVisibilityModel={isMobile ? { __serial: false, description: false } : undefined}
           getRowId={(r) => r._id}
           loading={isLoading}
           rowCount={data?.pagination.total ?? 0}
@@ -213,11 +217,17 @@ export default function SeveritiesPage() {
           pageSizeOptions={[10, 25, 50]}
           density="compact"
           disableRowSelectionOnClick
-          sx={{ border: '1px solid', borderColor: 'divider' }}
+          sx={dataGridSx}
         />
       </Box>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        fullScreen={isMobile}
+      >
         <DialogTitle>{editingId ? 'Edit severity' : 'New severity'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {(createState.error || updateState.error) && (

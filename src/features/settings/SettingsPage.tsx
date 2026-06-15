@@ -20,6 +20,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
   useDisconnectZapiMutation,
   useGetSettingsQuery,
@@ -43,6 +44,7 @@ function normalizeDoctorPhonesInput(raw: string) {
 }
 
 export default function SettingsPage() {
+  const isMobile = useIsMobile()
   const { data: settingsData, isLoading: settingsLoading } = useGetSettingsQuery()
   const [updateSettings, updateState] = useUpdateSettingsMutation()
 
@@ -169,7 +171,7 @@ export default function SettingsPage() {
             <CircularProgress size={24} />
           ) : (
             <Box component="form" onSubmit={(e) => void handleSaveOperational(e)}>
-              <Stack spacing={2} sx={{ maxWidth: 480 }}>
+              <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 480 } }}>
                 <TextField
                   label="Doctor WhatsApp"
                   value={doctorPhone}
@@ -214,7 +216,7 @@ export default function SettingsPage() {
             <CircularProgress size={24} />
           ) : (
             <Box component="form" onSubmit={(e) => void handleSaveOperational(e)}>
-              <Stack spacing={2} sx={{ maxWidth: 720 }}>
+              <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 720 } }}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <TextField
                     label="Session expiry (hours)"
@@ -424,6 +426,7 @@ export default function SettingsPage() {
         onClose={() => !disconnectState.isLoading && setDisconnectDialogOpen(false)}
         maxWidth="xs"
         fullWidth
+        fullScreen={isMobile}
         aria-labelledby="disconnect-whatsapp-title"
       >
         <DialogTitle id="disconnect-whatsapp-title">Disconnect WhatsApp?</DialogTitle>

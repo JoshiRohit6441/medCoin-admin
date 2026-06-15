@@ -1,0 +1,213 @@
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
+import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
+import {
+  Box,
+  Divider,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Tooltip,
+  Typography,
+} from '@mui/material'
+import type { ReactNode } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { BRAND_LOGO_SRC, BRAND_NAME } from '../../constants/brand'
+
+export const NAV_ITEMS = [
+  { to: '/', label: 'Dashboard', end: true, icon: DashboardOutlinedIcon },
+  { to: '/patients', label: 'Patients', icon: GroupsOutlinedIcon },
+  { to: '/consultations', label: 'Consultations', icon: LocalHospitalOutlinedIcon },
+  { to: '/meetings', label: 'Doctor meetings', icon: EventAvailableOutlinedIcon },
+  { to: '/transactions', label: 'Transactions', icon: PaymentsOutlinedIcon },
+  { to: '/severities', label: 'Severity levels', icon: TuneOutlinedIcon },
+  { to: '/settings', label: 'Settings', icon: SettingsOutlinedIcon },
+] as const
+
+type SidebarNavProps = {
+  collapsed: boolean
+  loggingOut: boolean
+  onLogout: () => void
+  onNavigate?: () => void
+  showBrand?: boolean
+  headerSlot?: ReactNode
+}
+
+function SidebarBrand({ collapsed }: { collapsed: boolean }) {
+  const logo = (
+    <Box
+      component="img"
+      src={BRAND_LOGO_SRC}
+      alt={BRAND_NAME}
+      sx={{
+        height: collapsed ? 34 : 42,
+        width: 'auto',
+        maxWidth: collapsed ? 48 : 176,
+        objectFit: 'contain',
+        flexShrink: 0,
+        display: 'block',
+      }}
+    />
+  )
+
+  if (collapsed) {
+    return (
+      <Tooltip title={BRAND_NAME} placement="right">
+        {logo}
+      </Tooltip>
+    )
+  }
+
+  return logo
+}
+
+export default function SidebarNav({
+  collapsed,
+  loggingOut,
+  onLogout,
+  onNavigate,
+  showBrand = true,
+  headerSlot,
+}: SidebarNavProps) {
+  const location = useLocation()
+
+  return (
+    <>
+      {showBrand ? (
+        <>
+          <Box
+            sx={{
+              px: collapsed ? 0.75 : 1.5,
+              py: 1.25,
+              position: 'relative',
+              display: 'flex',
+              flexDirection: collapsed ? 'column' : 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: collapsed ? 0.5 : 0,
+              minHeight: collapsed ? 56 : 60,
+              flexShrink: 0,
+            }}
+          >
+            <SidebarBrand collapsed={collapsed} />
+            {headerSlot}
+          </Box>
+          <Divider />
+        </>
+      ) : null}
+
+      {!collapsed ? (
+        <Box sx={{ px: 2, py: 1 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+            MENU
+          </Typography>
+        </Box>
+      ) : null}
+
+      <List dense disablePadding sx={{ py: 0.5, flex: 1, px: collapsed ? 0.5 : 0 }}>
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon
+          const selected =
+            'end' in item && item.end
+              ? location.pathname === item.to
+              : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+
+          const button = (
+            <ListItemButton
+              component={NavLink}
+              to={item.to}
+              end={'end' in item ? item.end : false}
+              selected={selected}
+              onClick={onNavigate}
+              sx={{
+                mx: collapsed ? 0.5 : 1,
+                borderRadius: 1,
+                mb: 0.25,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                minHeight: 48,
+                px: collapsed ? 1 : 2,
+                '&.Mui-selected': {
+                  bgcolor: 'grey.100',
+                  '&:hover': { bgcolor: 'grey.200' },
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: collapsed ? 0 : 36,
+                  color: selected ? 'primary.main' : 'text.secondary',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon fontSize="small" />
+              </ListItemIcon>
+              {!collapsed ? <ListItemText primary={item.label} /> : null}
+            </ListItemButton>
+          )
+
+          if (collapsed) {
+            return (
+              <Tooltip key={item.to} title={item.label} placement="right" arrow>
+                <Box component="span" sx={{ display: 'block' }}>
+                  {button}
+                </Box>
+              </Tooltip>
+            )
+          }
+
+          return <Box key={item.to}>{button}</Box>
+        })}
+      </List>
+
+      <Divider sx={{ flexShrink: 0 }} />
+
+      <List dense disablePadding sx={{ py: 1, flexShrink: 0, px: collapsed ? 0.5 : 0 }}>
+        {collapsed ? (
+          <Tooltip title={loggingOut ? 'Signing out…' : 'Log out'} placement="right" arrow>
+            <Box component="span" sx={{ display: 'block' }}>
+              <ListItemButton
+                disabled={loggingOut}
+                onClick={onLogout}
+                sx={{
+                  mx: 0.5,
+                  borderRadius: 1,
+                  color: 'error.main',
+                  justifyContent: 'center',
+                  minHeight: 48,
+                  '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.08)' },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, color: 'error.main', justifyContent: 'center' }}>
+                  <LogoutOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+              </ListItemButton>
+            </Box>
+          </Tooltip>
+        ) : (
+          <ListItemButton
+            disabled={loggingOut}
+            onClick={onLogout}
+            sx={{
+              mx: 1,
+              borderRadius: 1,
+              color: 'error.main',
+              minHeight: 48,
+              '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.08)' },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: 'error.main' }}>
+              <LogoutOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary={loggingOut ? 'Signing out…' : 'Log out'} />
+          </ListItemButton>
+        )}
+      </List>
+    </>
+  )
+}

@@ -282,7 +282,7 @@ export default function DashboardPage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 2 }}>
               Consultations — last 14 days
             </Typography>
-            <Box sx={{ width: '100%', height: 280 }}>
+            <Box sx={{ width: '100%', height: { xs: 220, sm: 280 } }}>
               <ResponsiveContainer>
                 <BarChart data={byDay} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -304,7 +304,7 @@ export default function DashboardPage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 2 }}>
               By triage severity
             </Typography>
-            <Box sx={{ width: '100%', height: 280 }}>
+            <Box sx={{ width: '100%', height: { xs: 220, sm: 280 } }}>
               {severityData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No severity data yet.
@@ -345,7 +345,7 @@ export default function DashboardPage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 2 }}>
               Consultations by state
             </Typography>
-            <Box sx={{ width: '100%', height: 260, display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ width: '100%', height: { xs: 220, sm: 260 }, display: 'flex', justifyContent: 'center' }}>
               {pieData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No data yet.

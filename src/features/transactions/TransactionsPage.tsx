@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Chip,
-  Drawer,
   FormControl,
   InputLabel,
   MenuItem,
@@ -14,6 +13,8 @@ import {
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
+import DetailDrawer from '../../components/layout/DetailDrawer'
+import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
   useGetTransactionQuery,
   useGetTransactionStatsQuery,
@@ -22,6 +23,7 @@ import {
   useSyncTransactionPaymentMutation,
 } from '../../store/api/medcoinAdminApi'
 import type { Transaction } from '../../types/admin'
+import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -67,9 +69,10 @@ function formatDt(v: unknown) {
 }
 
 export default function TransactionsPage() {
+  const isMobile = useIsMobile()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: isMobile ? 10 : 25,
   })
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'updatedAt', sort: 'desc' },
@@ -223,7 +226,7 @@ export default function TransactionsPage() {
         </Box>
       ) : null}
 
-      <FormControl size="small" sx={{ minWidth: 200 }}>
+      <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
         <InputLabel>Payment status</InputLabel>
         <Select
           label="Payment status"
@@ -245,10 +248,21 @@ export default function TransactionsPage() {
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
 
-      <Box sx={{ width: '100%', height: 560 }}>
+      <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={rows}
           columns={columns}
+          columnVisibilityModel={
+            isMobile
+              ? {
+                  __serial: false,
+                  mercadoPagoPaymentId: false,
+                  mercadoPagoStatus: false,
+                  bookingCode: false,
+                  updatedAt: false,
+                }
+              : undefined
+          }
           getRowId={(r) => r._id}
           loading={isLoading}
           rowCount={data?.pagination.total ?? 0}
@@ -273,29 +287,18 @@ export default function TransactionsPage() {
           disableRowSelectionOnClick
           slots={{ toolbar: Toolbar }}
           showToolbar
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            '& .MuiDataGrid-toolbarContainer': {
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            },
-          }}
+          sx={dataGridSx}
         />
       </Box>
 
-      <Drawer
-        anchor="right"
+      <DetailDrawer
         open={Boolean(selectedId)}
         onClose={() => {
           setSelectedId(null)
           setSelectedSerial(null)
         }}
+        title="Transaction detail"
       >
-        <Box sx={{ width: 440, p: 2, maxWidth: '100vw' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Transaction detail
-          </Typography>
           {!selectedId ? null : detailQuery.isLoading ? (
             <Typography variant="body2">Loading…</Typography>
           ) : detailQuery.isError ? (
@@ -418,8 +421,7 @@ export default function TransactionsPage() {
           <Button sx={{ mt: 2 }} onClick={() => setSelectedId(null)} fullWidth variant="outlined">
             Close
           </Button>
-        </Box>
-      </Drawer>
+      </DetailDrawer>
     </Stack>
   )
 }

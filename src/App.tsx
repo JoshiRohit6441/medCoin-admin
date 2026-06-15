@@ -32,6 +32,43 @@ const theme = createTheme({
   typography: {
     fontFamily:
       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    h5: {
+      fontSize: '1.35rem',
+      '@media (min-width:600px)': { fontSize: '1.5rem' },
+    },
+    h6: {
+      fontSize: '1.1rem',
+      '@media (min-width:600px)': { fontSize: '1.25rem' },
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          '@media (pointer: coarse)': { minHeight: 44 },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          '@media (pointer: coarse)': { padding: 10 },
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: { minHeight: 48 },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          '@media (pointer: coarse)': { height: 32 },
+        },
+      },
+    },
   },
 })
 

@@ -5,3 +5,16 @@ body,
 #root {
   height: 100%;
 }
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+@media (pointer: coarse) {
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+}
