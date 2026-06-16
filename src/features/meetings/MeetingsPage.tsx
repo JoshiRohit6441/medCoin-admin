@@ -7,13 +7,11 @@ import {
   Button,
   Chip,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
@@ -21,7 +19,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DetailDrawer from '../../components/layout/DetailDrawer'
-import DateFilterField from '../../components/forms/DateFilterField'
+import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
 import {
@@ -33,7 +31,8 @@ import type { Consultation, DoctorMeeting } from '../../types/admin'
 import { formatPatientAge } from '../../utils/patientDisplay'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
-import { isValidDateInputValue } from '../../utils/dateFormat'
+import { buildDateRangeParams } from '../../utils/dateFormat'
+import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageDrawerCloseSx, pageStatusChipSx, pageTableActionStackSx } from '../../utils/pageButtons'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const SEVERITIES = ['', 'Low', 'Medium', 'High'] as const
@@ -65,9 +64,17 @@ function patientAgeLabel(row: Consultation): string {
 
 function timingChip(row: DoctorMeeting) {
   const t = row.meetingTiming
-  if (t === 'upcoming') return <Chip label="Upcoming" size="small" color="success" variant="outlined" />
-  if (t === 'past') return <Chip label="Completed" size="small" color="default" variant="outlined" />
-  return <Chip label="—" size="small" variant="outlined" />
+  if (t === 'upcoming') {
+    return (
+      <Chip label="Upcoming" size="small" color="success" variant="outlined" sx={pageStatusChipSx} />
+    )
+  }
+  if (t === 'past') {
+    return (
+      <Chip label="Completed" size="small" color="success" variant="outlined" sx={pageStatusChipSx} />
+    )
+  }
+  return <Chip label="—" size="small" variant="outlined" sx={pageStatusChipSx} />
 }
 
 function MeetLinkActions({
@@ -90,27 +97,27 @@ function MeetLinkActions({
   return (
     <Stack
       direction="row"
-      spacing={0.25}
-      sx={{ alignItems: 'center' }}
+      spacing={1}
+      sx={pageTableActionStackSx}
       onClick={(e) => e.stopPropagation()}
     >
-      <Tooltip title="Open meeting">
-        <IconButton
-          size="small"
-          component="a"
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Open meeting link"
-        >
-          <OpenInNewOutlinedIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Copy meeting link">
-        <IconButton size="small" onClick={(e) => void copyLink(e)} aria-label="Copy meeting link">
-          <ContentCopyOutlinedIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Tooltip>
+      <Button
+        {...pageButtonProps}
+        component="a"
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        startIcon={<OpenInNewOutlinedIcon sx={{ fontSize: 16 }} />}
+      >
+        Open
+      </Button>
+      <Button
+        {...pageButtonProps}
+        startIcon={<ContentCopyOutlinedIcon sx={{ fontSize: 16 }} />}
+        onClick={(e) => void copyLink(e)}
+      >
+        Copy
+      </Button>
     </Stack>
   )
 }
@@ -163,8 +170,8 @@ export default function MeetingsPage() {
     state: state || undefined,
     search: patientSearch.trim() || undefined,
     bookingCode: bookingCode.trim() || undefined,
-    appointmentFrom: isValidDateInputValue(appointmentFrom) && appointmentFrom ? appointmentFrom : undefined,
-    appointmentTo: isValidDateInputValue(appointmentTo) && appointmentTo ? appointmentTo : undefined,
+    appointmentFrom: buildDateRangeParams(appointmentFrom, appointmentTo, 'appointment').appointmentFrom,
+    appointmentTo: buildDateRangeParams(appointmentFrom, appointmentTo, 'appointment').appointmentTo,
   })
 
   const detailQuery = useGetConsultationQuery(selectedId ?? '', { skip: !selectedId })
@@ -180,9 +187,12 @@ export default function MeetingsPage() {
       {
         field: 'meetingTiming',
         headerName: 'When',
-        width: 110,
+        minWidth: 120,
+        width: 120,
         sortable: false,
-        renderCell: ({ row }) => timingChip(row),
+        renderCell: ({ row }) => (
+          <Box sx={pageDataGridCellSx}>{timingChip(row)}</Box>
+        ),
       },
       {
         field: 'patientName',
@@ -226,11 +236,18 @@ export default function MeetingsPage() {
       {
         field: 'appointmentMeetingUrl',
         headerName: 'Meet',
-        width: 88,
+        minWidth: 176,
+        width: 176,
         sortable: false,
         renderCell: ({ value }) => {
           const url = String(value || '').trim()
-          return url ? <MeetLinkActions url={url} onCopied={notifyLinkCopied} /> : '—'
+          return url ? (
+            <Box sx={pageDataGridCellSx}>
+              <MeetLinkActions url={url} onCopied={notifyLinkCopied} />
+            </Box>
+          ) : (
+            '—'
+          )
         },
       },
     ],
@@ -246,6 +263,26 @@ export default function MeetingsPage() {
     setSearchParams(params, { replace: true })
   }
 
+  const hasActiveFilters = Boolean(
+    patientSearch.trim() ||
+      severity ||
+      state ||
+      bookingCode.trim() ||
+      appointmentFrom ||
+      appointmentTo ||
+      timing !== 'all'
+  )
+
+  function resetFilters() {
+    setPatientSearch('')
+    setSeverity('')
+    setState('')
+    setBookingCode('')
+    setAppointmentFrom('')
+    setAppointmentTo('')
+    applyTimingFilter('all')
+  }
+
   return (
     <Stack spacing={2}>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
@@ -253,7 +290,7 @@ export default function MeetingsPage() {
         <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>
           Doctor meetings
         </Typography>
-        <Button size="small" variant="outlined" onClick={() => void refetch()} disabled={isFetching}>
+        <Button {...pageButtonProps} onClick={() => void refetch()} disabled={isFetching}>
           Refresh
         </Button>
       </Box>
@@ -268,6 +305,7 @@ export default function MeetingsPage() {
         />
         <Chip
           label={`Completed: ${summary?.past ?? '—'}`}
+          color="success"
           variant={timing === 'past' ? 'filled' : 'outlined'}
           onClick={() => applyTimingFilter('past')}
           sx={{ cursor: 'pointer' }}
@@ -280,28 +318,29 @@ export default function MeetingsPage() {
         />
       </Stack>
 
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 1.5,
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(6, 1fr)',
-          },
+      <ListFilterBar
+        search={patientSearch}
+        onSearchChange={(value) => {
+          setPatientSearch(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
         }}
+        searchLabel="Patient name or phone"
+        searchPlaceholder="Name or phone number"
+        from={appointmentFrom}
+        to={appointmentTo}
+        fromLabel="Appointment from"
+        toLabel="Appointment to"
+        onFromChange={(value) => {
+          setAppointmentFrom(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onToChange={(value) => {
+          setAppointmentTo(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onReset={resetFilters}
+        resetDisabled={!hasActiveFilters}
       >
-        <TextField
-          size="small"
-          label="Patient name or phone"
-          value={patientSearch}
-          onChange={(e) => {
-            setPatientSearch(e.target.value)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
-          fullWidth
-        />
         <FormControl size="small" fullWidth>
           <InputLabel id="meetings-timing-label">Timings</InputLabel>
           <Select
@@ -339,7 +378,7 @@ export default function MeetingsPage() {
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" fullWidth>
+        {/* <FormControl size="small" fullWidth>
           <InputLabel>State</InputLabel>
           <Select
             label="State"
@@ -356,27 +395,7 @@ export default function MeetingsPage() {
               </MenuItem>
             ))}
           </Select>
-        </FormControl>
-        <DateFilterField
-          size="small"
-          label="From date"
-          value={appointmentFrom}
-          onValueChange={(value) => {
-            setAppointmentFrom(value)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
-          fullWidth
-        />
-        <DateFilterField
-          size="small"
-          label="To date"
-          value={appointmentTo}
-          onValueChange={(value) => {
-            setAppointmentTo(value)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
-          fullWidth
-        />
+        </FormControl> */}
         <TextField
           size="small"
           label="Booking code"
@@ -386,9 +405,8 @@ export default function MeetingsPage() {
             setPaginationModel((p) => ({ ...p, page: 0 }))
           }}
           fullWidth
-          sx={{ gridColumn: { xs: '1', sm: 'span 2', md: 'span 2' } }}
         />
-      </Box>
+      </ListFilterBar>
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
 
@@ -422,7 +440,7 @@ export default function MeetingsPage() {
             setSelectedSerial(Number(params.row.__serial) || null)
           }}
           pageSizeOptions={[10, 25, 50]}
-          density="compact"
+          {...pageDataGridDefaults}
           disableRowSelectionOnClick
           sx={dataGridSx}
         />
@@ -478,8 +496,7 @@ export default function MeetingsPage() {
               {detailQuery.data?.item.appointmentMeetingUrl ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flexWrap: 'wrap' }}>
                   <Button
-                    size="small"
-                    variant="outlined"
+                    {...pageButtonProps}
                     component="a"
                     href={detailQuery.data.item.appointmentMeetingUrl}
                     target="_blank"
@@ -489,8 +506,7 @@ export default function MeetingsPage() {
                     Open Google Meet
                   </Button>
                   <Button
-                    size="small"
-                    variant="contained"
+                    {...pageButtonProps}
                     startIcon={<ContentCopyOutlinedIcon />}
                     onClick={() =>
                       void copyMeetingLink(detailQuery.data!.item.appointmentMeetingUrl!)
@@ -509,9 +525,9 @@ export default function MeetingsPage() {
             </Stack>
           )}
           <Button
-            sx={{ mt: 2 }}
+            {...pageButtonProps}
             fullWidth
-            variant="outlined"
+            sx={pageDrawerCloseSx}
             onClick={() => {
               setSelectedId(null)
               setSelectedSerial(null)

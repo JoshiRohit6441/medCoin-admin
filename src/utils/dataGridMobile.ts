@@ -7,11 +7,15 @@ export const dataGridSx: SxProps<Theme> = {
   borderColor: 'divider',
   '& .MuiDataGrid-row': {
     cursor: 'pointer',
-    minHeight: { xs: 52, sm: 44 },
+    minHeight: 52,
   },
   '& .MuiDataGrid-cell': {
-    py: { xs: 1, sm: 0.5 },
+    py: 1,
+    px: 1.5,
     fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'visible',
   },
   '& .MuiDataGrid-columnHeaderTitle': {
     fontSize: { xs: '0.75rem', sm: '0.8125rem' },

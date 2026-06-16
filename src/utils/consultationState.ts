@@ -25,7 +25,7 @@ export function consultationStateChipColor(state?: string): ChipProps['color'] {
   if (s === 'PAYMENT_PENDING') return 'warning'
   if (s === 'TRIAGE_IN_PROGRESS' || s === 'BOOKING_PENDING') return 'info'
   if (s === 'COMPLETED' || s === 'BOOKED' || s === 'DOCTOR_NOTIFIED') return 'success'
-  if (s === 'EXPIRED') return 'default'
+  if (s === 'EXPIRED') return 'error'
   if (s === 'PAID') return 'success'
   return 'default'
 }
@@ -61,4 +61,26 @@ export function isActiveSessionStateFilter(stateFilter?: string): boolean {
   const parts = new Set(stateFilter.split(',').map((s) => s.trim()).filter(Boolean))
   if (parts.size !== ACTIVE_SESSION_STATE_LIST.length) return false
   return ACTIVE_SESSION_STATE_LIST.every((state) => parts.has(state))
+}
+
+export type ConsultationStatus = 'Active' | 'Completed' | 'Expired'
+
+const COMPLETED_STATE_SET = new Set(['COMPLETED', 'BOOKED', 'DOCTOR_NOTIFIED'])
+
+export function resolveConsultationStatus(state?: string): ConsultationStatus {
+  const s = String(state || '').trim()
+  if (s === 'EXPIRED') return 'Expired'
+  if (COMPLETED_STATE_SET.has(s)) return 'Completed'
+  return 'Active'
+}
+
+export function consultationStatusLabel(state?: string): string {
+  return resolveConsultationStatus(state)
+}
+
+export function consultationStatusChipColor(state?: string): ChipProps['color'] {
+  const status = resolveConsultationStatus(state)
+  if (status === 'Expired') return 'error'
+  if (status === 'Completed') return 'success'
+  return 'primary'
 }

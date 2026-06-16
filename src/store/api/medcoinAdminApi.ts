@@ -201,8 +201,11 @@ export const medcoinAdminApi = createApi({
         body,
       }),
     }),
-    getOverview: builder.query<AdminOverview, void>({
-      query: () => '/overview',
+    getOverview: builder.query<
+      AdminOverview,
+      { createdFrom?: string; createdTo?: string } | void
+    >({
+      query: (params) => ({ url: '/overview', params: params ?? {} }),
       providesTags: ['Overview'],
     }),
     listPatients: builder.query<
@@ -315,8 +318,11 @@ export const medcoinAdminApi = createApi({
             ]
           : [{ type: 'Meeting', id: 'LIST' }],
     }),
-    getTransactionStats: builder.query<TransactionStats, void>({
-      query: () => '/transactions/stats',
+    getTransactionStats: builder.query<
+      TransactionStats,
+      { createdFrom?: string; createdTo?: string } | void
+    >({
+      query: (params) => ({ url: '/transactions/stats', params: params ?? {} }),
       providesTags: ['Transaction'],
     }),
     listTransactions: builder.query<
@@ -405,6 +411,8 @@ export const medcoinAdminApi = createApi({
         status?: string
         search?: string
         q?: string
+        createdFrom?: string
+        createdTo?: string
       } | void
     >({
       query: (params) => ({ url: '/staff', params: params ?? {} }),
@@ -435,6 +443,8 @@ export const medcoinAdminApi = createApi({
         aiSeverityKey?: string
         search?: string
         q?: string
+        createdFrom?: string
+        createdTo?: string
       } | void
     >({
       query: (params) => {

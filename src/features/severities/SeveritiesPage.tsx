@@ -11,6 +11,7 @@ import {
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
@@ -18,6 +19,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
+import ListFilterBar from '../../components/forms/ListFilterBar'
 import {
   useCreateSeverityMutation,
   useDeleteSeverityMutation,
@@ -26,7 +28,9 @@ import {
 } from '../../store/api/medcoinAdminApi'
 import type { SeverityLevel } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { buildDateRangeParams } from '../../utils/dateFormat'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults } from '../../utils/pageButtons'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const AI_KEYS = ['Low', 'Medium', 'High'] as const
@@ -57,6 +61,8 @@ export default function SeveritiesPage() {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'aiSeverityKey', sort: 'asc' },
   ])
+  const [createdFrom, setCreatedFrom] = useState('')
+  const [createdTo, setCreatedTo] = useState('')
 
   const sort = sortModel[0]
   const { data, isLoading, isError, error, refetch, isFetching } = useListSeveritiesQuery({
@@ -64,6 +70,7 @@ export default function SeveritiesPage() {
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'aiSeverityKey',
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'asc',
+    ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const [createSeverity, createState] = useCreateSeverityMutation()
@@ -90,6 +97,14 @@ export default function SeveritiesPage() {
     [usedAiKeys]
   )
 
+  const hasActiveFilters = Boolean(createdFrom || createdTo)
+
+  function resetFilters() {
+    setCreatedFrom('')
+    setCreatedTo('')
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }
+
   const columns: GridColDef<SeverityLevel>[] = useMemo(
     () => [
       serialColumn(),
@@ -100,22 +115,42 @@ export default function SeveritiesPage() {
         field: 'description',
         headerName: 'Description',
         flex: 1,
-        minWidth: 200,
-        valueFormatter: (v) => {
-          const s = v ? String(v) : ''
-          return s.length > 80 ? `${s.slice(0, 80)}…` : s
+        minWidth: 180,
+        cellClassName: 'severity-description-cell',
+        renderCell: ({ value }) => {
+          const text = value ? String(value) : '—'
+          return (
+            <Tooltip title={text} placement="top-start" enterDelay={400}>
+              <Typography
+                variant="body2"
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  width: '100%',
+                  minWidth: 0,
+                }}
+              >
+                {text}
+              </Typography>
+            </Tooltip>
+          )
         },
       },
       {
         field: 'actions',
         headerName: 'Action',
-        width: 160,
+        width: 96,
+        minWidth: 96,
+        maxWidth: 96,
+        flex: 0,
         sortable: false,
         filterable: false,
+        disableColumnMenu: true,
         renderCell: (params) => (
-          <Stack direction="row" spacing={1}>
+          <Box sx={{ ...pageDataGridCellSx, justifyContent: 'flex-end' }}>
             <Button
-              size="small"
+              {...pageButtonProps}
               onClick={(e) => {
                 e.stopPropagation()
                 const row = params.row
@@ -132,17 +167,7 @@ export default function SeveritiesPage() {
             >
               Edit
             </Button>
-            {/* <Button
-              size="small"
-              color="error"
-              onClick={(e) => {
-                e.stopPropagation()
-                setDeleteId(params.row._id)
-              }}
-            >
-              Delete
-            </Button> */}
-          </Stack>
+          </Box>
         ),
       },
     ],
@@ -198,8 +223,7 @@ export default function SeveritiesPage() {
           Severity levels
         </Typography>
         <Button
-          size="small"
-          variant="outlined"
+          {...pageButtonProps}
           onClick={() => refetch()}
           disabled={isFetching}
         >
@@ -221,6 +245,21 @@ export default function SeveritiesPage() {
         </Alert>
       ) : null}
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
+      <ListFilterBar
+        showSearch={false}
+        from={createdFrom}
+        to={createdTo}
+        onFromChange={(value) => {
+          setCreatedFrom(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onToChange={(value) => {
+          setCreatedTo(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onReset={resetFilters}
+        resetDisabled={!hasActiveFilters}
+      />
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={rows}
@@ -236,9 +275,14 @@ export default function SeveritiesPage() {
           sortModel={sortModel}
           onSortModelChange={setSortModel}
           pageSizeOptions={[10, 25, 50]}
-          density="compact"
+          {...pageDataGridDefaults}
           disableRowSelectionOnClick
-          sx={dataGridSx}
+          sx={{
+            ...dataGridSx,
+            '& .severity-description-cell': {
+              overflow: 'hidden',
+            },
+          }}
         />
       </Box>
 

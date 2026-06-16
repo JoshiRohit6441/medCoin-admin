@@ -9,7 +9,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
@@ -17,6 +16,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
   useGetConsultationQuery,
@@ -25,21 +25,22 @@ import {
 import type { Consultation } from '../../types/admin'
 import {
   ACTIVE_SESSION_STATES,
+  ACTIVE_SESSION_STATE_LIST,
   COMPLETED_FLOW_STATES,
-  CONSULTATION_STATE_OPTIONS,
-  consultationStateChipColor,
-  consultationStateLabel,
+  consultationStatusChipColor,
+  consultationStatusLabel,
   isActiveSessionStateFilter,
-  isHighlightedConsultationState,
 } from '../../utils/consultationState'
 import { formatPatientAge } from '../../utils/patientDisplay'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { buildDateRangeParams } from '../../utils/dateFormat'
+import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageDrawerCloseSx, pageStatusChipSx } from '../../utils/pageButtons'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const SEVERITIES = ['', 'Low', 'Medium', 'High'] as const
 
-type ViewPreset = 'all' | 'active' | 'completed_flow' | 'expired' | 'custom'
+type StatusPreset = 'all' | 'active' | 'completed' | 'expired'
 
 function patientField(row: Consultation, key: 'phone' | 'name'): string {
   const p = row.patient
@@ -58,17 +59,22 @@ function patientAgeLabel(row: Consultation): string {
   return '—'
 }
 
-function resolveViewPreset(stateFilter: string): ViewPreset {
+function resolveStatusPreset(stateFilter: string): StatusPreset {
+  if (!stateFilter) return 'all'
   if (isActiveSessionStateFilter(stateFilter)) return 'active'
   if (stateFilter === 'EXPIRED') return 'expired'
-  if (stateFilter === COMPLETED_FLOW_STATES) return 'completed_flow'
-  if (!stateFilter) return 'all'
-  return 'custom'
-}
+  if (stateFilter === COMPLETED_FLOW_STATES) return 'completed'
 
-function resolveSingleState(stateFilter: string): string {
-  if (!stateFilter || stateFilter.includes(',')) return ''
-  return stateFilter
+  const parts = stateFilter.split(',').map((s) => s.trim()).filter(Boolean)
+  if (parts.length === 1) {
+    if (parts[0] === 'EXPIRED') return 'expired'
+    if (['COMPLETED', 'BOOKED', 'DOCTOR_NOTIFIED'].includes(parts[0])) return 'completed'
+    if (ACTIVE_SESSION_STATE_LIST.includes(parts[0] as (typeof ACTIVE_SESSION_STATE_LIST)[number])) {
+      return 'active'
+    }
+  }
+
+  return 'all'
 }
 
 function TriageConversation({
@@ -125,28 +131,22 @@ const columns: GridColDef<Consultation>[] = [
   serialColumn(),
   {
     field: 'state',
-    headerName: 'State',
-    minWidth: 160,
-    flex: 0.5,
+    headerName: 'Status',
+    minWidth: 132,
+    width: 132,
+    sortable: false,
     renderCell: ({ value }) => {
       const state = String(value || '')
-      const highlighted = isHighlightedConsultationState(state)
       return (
-        <Chip
-          size="small"
-          label={consultationStateLabel(state)}
-          color={consultationStateChipColor(state)}
-          variant={highlighted ? 'filled' : 'outlined'}
-          sx={{
-            fontWeight: highlighted ? 700 : 500,
-            maxWidth: '100%',
-            ...(highlighted
-              ? {
-                  boxShadow: '0 0 0 1px rgba(234, 88, 12, 0.25)',
-                }
-              : {}),
-          }}
-        />
+        <Box sx={pageDataGridCellSx}>
+          <Chip
+            size="small"
+            label={consultationStatusLabel(state)}
+            color={consultationStatusChipColor(state)}
+            variant="outlined"
+            sx={pageStatusChipSx}
+          />
+        </Box>
       )
     },
   },
@@ -202,10 +202,11 @@ export default function ConsultationsPage() {
   const severityFilter = searchParams.get('severity') || ''
   const searchQuery = searchParams.get('search') || ''
 
-  const viewPreset = resolveViewPreset(stateFilter)
-  const singleState = resolveSingleState(stateFilter)
+  const statusPreset = resolveStatusPreset(stateFilter)
 
   const [searchInput, setSearchInput] = useState(searchQuery)
+  const [createdFrom, setCreatedFrom] = useState('')
+  const [createdTo, setCreatedTo] = useState('')
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: isMobile ? 10 : 25,
@@ -243,7 +244,7 @@ export default function ConsultationsPage() {
 
   useEffect(() => {
     setPaginationModel((p) => ({ ...p, page: 0 }))
-  }, [stateFilter, severityFilter, searchQuery])
+  }, [stateFilter, severityFilter, searchQuery, createdFrom, createdTo])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -254,8 +255,8 @@ export default function ConsultationsPage() {
     return () => window.clearTimeout(timer)
   }, [searchInput, searchQuery, updateParams])
 
-  const applyViewPreset = useCallback(
-    (preset: ViewPreset) => {
+  const applyStatusPreset = useCallback(
+    (preset: StatusPreset) => {
       if (preset === 'all') {
         updateParams({ activeOnly: null, state: null })
         return
@@ -264,7 +265,7 @@ export default function ConsultationsPage() {
         updateParams({ activeOnly: null, state: ACTIVE_SESSION_STATES })
         return
       }
-      if (preset === 'completed_flow') {
+      if (preset === 'completed') {
         updateParams({ activeOnly: null, state: COMPLETED_FLOW_STATES })
         return
       }
@@ -277,6 +278,8 @@ export default function ConsultationsPage() {
 
   const clearFilters = useCallback(() => {
     setSearchInput('')
+    setCreatedFrom('')
+    setCreatedTo('')
     updateParams({ activeOnly: null, state: null, severity: null, search: null })
   }, [updateParams])
 
@@ -290,6 +293,7 @@ export default function ConsultationsPage() {
     q: searchQuery || undefined,
     state: stateFilter || undefined,
     severity: severityFilter || undefined,
+    ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const detailQuery = useGetConsultationQuery(selectedId ?? '', { skip: !selectedId })
@@ -302,25 +306,22 @@ export default function ConsultationsPage() {
   const hasActiveFilters =
     Boolean(stateFilter) ||
     Boolean(severityFilter) ||
-    Boolean(searchQuery)
+    Boolean(searchQuery) ||
+    Boolean(createdFrom) ||
+    Boolean(createdTo)
 
   const filterSummary = useMemo(() => {
     const parts: string[] = []
-    if (viewPreset === 'active') parts.push('Active sessions')
-    else if (viewPreset === 'completed_flow') parts.push('Completed flow')
-    else if (viewPreset === 'expired') parts.push('Expired')
-    else if (viewPreset === 'custom' && stateFilter) {
-      parts.push(
-        stateFilter
-          .split(',')
-          .map(consultationStateLabel)
-          .join(', ')
-      )
-    }
+    if (statusPreset === 'active') parts.push('Status: Active')
+    else if (statusPreset === 'completed') parts.push('Status: Completed')
+    else if (statusPreset === 'expired') parts.push('Status: Expired')
     if (severityFilter) parts.push(`Severity: ${severityFilter}`)
     if (searchQuery) parts.push(`Search: "${searchQuery}"`)
+    if (createdFrom || createdTo) {
+      parts.push(`Created: ${createdFrom || '…'} – ${createdTo || '…'}`)
+    }
     return parts.join(' · ')
-  }, [viewPreset, stateFilter, severityFilter, searchQuery])
+  }, [statusPreset, severityFilter, searchQuery, createdFrom, createdTo])
 
   return (
     <Stack spacing={2}>
@@ -328,39 +329,51 @@ export default function ConsultationsPage() {
         <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>
           Consultations
         </Typography>
-        <Button size="small" variant="outlined" onClick={() => refetch()} disabled={isFetching}>
+        <Button {...pageButtonProps} onClick={() => refetch()} disabled={isFetching}>
           Refresh
         </Button>
       </Box>
 
-      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+      <ListFilterBar
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        searchPlaceholder="Name, phone, or booking code"
+        from={createdFrom}
+        to={createdTo}
+        onFromChange={setCreatedFrom}
+        onToChange={setCreatedTo}
+        onReset={clearFilters}
+        resetDisabled={!hasActiveFilters}
+      />
+
+      {/* <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
         <Chip
           label="All"
-          variant={viewPreset === 'all' && !severityFilter && !searchQuery ? 'filled' : 'outlined'}
-          onClick={() => applyViewPreset('all')}
+          variant={statusPreset === 'all' && !severityFilter && !searchQuery ? 'filled' : 'outlined'}
+          onClick={() => applyStatusPreset('all')}
           sx={{ cursor: 'pointer' }}
         />
         <Chip
-          label="Active sessions"
+          label="Active"
           color="primary"
-          variant={viewPreset === 'active' ? 'filled' : 'outlined'}
-          onClick={() => applyViewPreset('active')}
+          variant={statusPreset === 'active' ? 'filled' : 'outlined'}
+          onClick={() => applyStatusPreset('active')}
           sx={{ cursor: 'pointer' }}
         />
         <Chip
-          label="Completed flow"
+          label="Completed"
           color="success"
-          variant={viewPreset === 'completed_flow' ? 'filled' : 'outlined'}
-          onClick={() => applyViewPreset('completed_flow')}
+          variant={statusPreset === 'completed' ? 'filled' : 'outlined'}
+          onClick={() => applyStatusPreset('completed')}
           sx={{ cursor: 'pointer' }}
         />
         <Chip
           label="Expired"
-          variant={viewPreset === 'expired' ? 'filled' : 'outlined'}
-          onClick={() => applyViewPreset('expired')}
+          variant={statusPreset === 'expired' ? 'filled' : 'outlined'}
+          onClick={() => applyStatusPreset('expired')}
           sx={{ cursor: 'pointer' }}
         />
-      </Stack>
+      </Stack> */}
 
       <Box
         sx={{
@@ -369,59 +382,23 @@ export default function ConsultationsPage() {
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            md: 'repeat(4, 1fr)',
+            md: 'repeat(2, 1fr)',
+            lg: 'repeat(4, 1fr)',
           },
         }}
       >
-        <TextField
-          size="small"
-          label="Search"
-          placeholder="Name, phone, or booking code"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          fullWidth
-        />
         <FormControl size="small" fullWidth>
-          <InputLabel id="consultations-view-label">View</InputLabel>
+          <InputLabel id="consultations-status-label">Status</InputLabel>
           <Select
-            labelId="consultations-view-label"
-            label="View"
-            value={viewPreset === 'custom' ? 'custom' : viewPreset}
-            onChange={(e) => {
-              const next = e.target.value as ViewPreset
-              if (next !== 'custom') applyViewPreset(next)
-            }}
+            labelId="consultations-status-label"
+            label="Status"
+            value={statusPreset}
+            onChange={(e) => applyStatusPreset(e.target.value as StatusPreset)}
           >
             <MenuItem value="all">All consultations</MenuItem>
-            <MenuItem value="active">Active sessions</MenuItem>
-            <MenuItem value="completed_flow">Completed flow</MenuItem>
+            <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="completed">Completed</MenuItem>
             <MenuItem value="expired">Expired</MenuItem>
-            {viewPreset === 'custom' ? (
-              <MenuItem value="custom" disabled>
-                Custom state filter
-              </MenuItem>
-            ) : null}
-          </Select>
-        </FormControl>
-        <FormControl size="small" fullWidth>
-          <InputLabel>State</InputLabel>
-          <Select
-            label="State"
-            value={singleState}
-            onChange={(e) => {
-              const next = e.target.value
-              updateParams({
-                activeOnly: null,
-                state: next || null,
-              })
-            }}
-          >
-            <MenuItem value="">All states</MenuItem>
-            {CONSULTATION_STATE_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
           </Select>
         </FormControl>
         <FormControl size="small" fullWidth>
@@ -442,15 +419,10 @@ export default function ConsultationsPage() {
       </Box>
 
       {hasActiveFilters ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          <Alert severity="info" sx={{ py: 0.25, flex: 1, minWidth: 200 }}>
-            {filterSummary || 'Filters applied'} · {data?.pagination.total ?? 0} result
-            {(data?.pagination.total ?? 0) === 1 ? '' : 's'}
-          </Alert>
-          <Button size="small" onClick={clearFilters}>
-            Clear filters
-          </Button>
-        </Stack>
+        <Alert severity="info" sx={{ py: 0.25 }}>
+          {filterSummary || 'Filters applied'} · {data?.pagination.total ?? 0} result
+          {(data?.pagination.total ?? 0) === 1 ? '' : 's'}
+        </Alert>
       ) : null}
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
@@ -483,7 +455,7 @@ export default function ConsultationsPage() {
             setSelectedSerial(Number(params.row.__serial) || null)
           }}
           pageSizeOptions={[10, 25, 50]}
-          density="compact"
+          {...pageDataGridDefaults}
           disableRowSelectionOnClick
           sx={dataGridSx}
         />
@@ -521,7 +493,7 @@ export default function ConsultationsPage() {
               {patientField(detailQuery.data?.item ?? ({} as Consultation), 'phone') || '—'}
             </div>
             <div>
-              <strong>State:</strong> {consultationStateLabel(detailQuery.data?.item.state)}
+              <strong>Status:</strong> {consultationStatusLabel(detailQuery.data?.item.state)}
             </div>
             <div>
               <strong>Severity:</strong> {detailQuery.data?.item.severity || '—'}
@@ -553,13 +525,13 @@ export default function ConsultationsPage() {
           </Stack>
         )}
         <Button
-          sx={{ mt: 2 }}
+          {...pageButtonProps}
+          fullWidth
+          sx={pageDrawerCloseSx}
           onClick={() => {
             setSelectedId(null)
             setSelectedSerial(null)
           }}
-          fullWidth
-          variant="outlined"
         >
           Close
         </Button>

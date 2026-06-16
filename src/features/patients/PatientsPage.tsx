@@ -6,31 +6,18 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-data-grid'
+import { DataGrid } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useGetPatientQuery, useListPatientsQuery } from '../../store/api/medcoinAdminApi'
 import type { Patient } from '../../types/admin'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { buildDateRangeParams } from '../../utils/dateFormat'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { formatPatientAge, formatPatientAgeWithUnit } from '../../utils/patientDisplay'
 import { formatDateTime, serialColumn, withSerialNumbers, dateTimeColumn } from '../../utils/gridSerial'
-
-function Toolbar() {
-  return (
-    <GridToolbarContainer sx={{ gap: 1, px: 1, py: 1 }}>
-      <GridToolbarQuickFilter
-        debounceMs={400}
-        slotProps={{
-          root: {
-            placeholder: 'Search by name or phone number',
-          },
-        }}
-      />
-    </GridToolbarContainer>
-  )
-}
 
 const columns: GridColDef<Patient & { __serial?: number }>[] = [
   serialColumn(),
@@ -64,6 +51,8 @@ export default function PatientsPage() {
     { field: 'createdAt', sort: 'desc' },
   ])
   const [quickFilter, setQuickFilter] = useState('')
+  const [createdFrom, setCreatedFrom] = useState('')
+  const [createdTo, setCreatedTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedSerial, setSelectedSerial] = useState<number | null>(null)
 
@@ -75,6 +64,7 @@ export default function PatientsPage() {
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'desc',
     search: quickFilter || undefined,
     q: quickFilter || undefined,
+    ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const rows = useMemo(
@@ -83,6 +73,14 @@ export default function PatientsPage() {
   )
 
   const detailQuery = useGetPatientQuery(selectedId ?? '', { skip: !selectedId })
+  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo)
+
+  function resetFilters() {
+    setQuickFilter('')
+    setCreatedFrom('')
+    setCreatedTo('')
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }
 
   return (
     <Stack spacing={2}>
@@ -94,6 +92,28 @@ export default function PatientsPage() {
           Refresh
         </Button>
       </Box>
+
+      <ListFilterBar
+        search={quickFilter}
+        onSearchChange={(value) => {
+          setQuickFilter(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        searchPlaceholder="Search by name or phone number"
+        from={createdFrom}
+        to={createdTo}
+        onFromChange={(value) => {
+          setCreatedFrom(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onToChange={(value) => {
+          setCreatedTo(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onReset={resetFilters}
+        resetDisabled={!hasActiveFilters}
+      />
+
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
@@ -113,13 +133,6 @@ export default function PatientsPage() {
           onPaginationModelChange={setPaginationModel}
           sortModel={sortModel}
           onSortModelChange={setSortModel}
-          filterMode="server"
-          filterDebounceMs={400}
-          onFilterModelChange={(m) => {
-            const q = m.quickFilterValues?.join(' ') ?? ''
-            setQuickFilter(q)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
           onRowClick={(params) => {
             setSelectedId(String(params.id))
             setSelectedSerial(Number(params.row.__serial) || null)
@@ -127,8 +140,6 @@ export default function PatientsPage() {
           pageSizeOptions={[10, 25, 50]}
           density="compact"
           disableRowSelectionOnClick
-          slots={{ toolbar: Toolbar }}
-          showToolbar
           slotProps={{
             loadingOverlay: { variant: 'skeleton', noRowsVariant: 'skeleton' },
           }}

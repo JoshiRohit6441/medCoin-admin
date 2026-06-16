@@ -14,8 +14,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
   InputAdornment,
+  Skeleton,
   Stack,
   TextField,
   Typography,
@@ -306,147 +306,236 @@ export default function SettingsPage() {
                 'ZAPI_INSTANCE and ZAPI_TOKEN must be configured in the server .env file.'}
             </Alert>
           ) : (
-            <Stack spacing={2}>
-              <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
-                <Chip
-                  size="small"
-                  label={zapi.connected ? 'Connected' : 'Not connected'}
-                  color={zapi.connected ? 'success' : 'default'}
-                />
-                {zapi.smartphoneConnected != null ? (
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={
-                      zapi.smartphoneConnected ? 'Phone online' : 'Phone offline'
-                    }
-                  />
-                ) : null}
-                {zapi.clientTokenConfigured ? (
-                  <Chip size="small" variant="outlined" label="Client token OK" />
-                ) : (
-                  <Chip size="small" color="warning" variant="outlined" label="No client token" />
-                )}
-              </Stack>
-
-              <Box sx={{ typography: 'body2' }}>
-                <div>
-                  <strong>Enrolled number:</strong>{' '}
-                  {zapi.enrolledPhone ? formatPhoneDisplay(zapi.enrolledPhone) : '—'}
-                  {zapi.enrolledPhone && zapi.enrolledPhoneSource ? (
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      (via Z-API {zapi.enrolledPhoneSource})
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'minmax(240px, 280px) 1fr' },
+                gap: { xs: 2.5, md: 3 },
+                alignItems: 'start',
+              }}
+            >
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: { xs: 280, md: '100%' },
+                  mx: { xs: 'auto', md: 0 },
+                  justifySelf: { md: 'start' },
+                }}
+              >
+                {zapi.connected ? (
+                  <Box
+                    sx={{
+                      aspectRatio: '1',
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'success.light',
+                      bgcolor: 'success.50',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      p: 2,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <WhatsAppIcon sx={{ fontSize: 48, color: '#25D366' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      WhatsApp connected
                     </Typography>
-                  ) : null}
-                </div>
-                {zapi.deviceName ? (
-                  <div>
-                    <strong>WhatsApp profile:</strong> {zapi.deviceName}
-                  </div>
-                ) : null}
-                {zapi.instanceName ? (
-                  <div>
-                    <strong>Instance:</strong> {zapi.instanceName}
-                  </div>
-                ) : null}
-                {zapi.instanceId ? (
-                  <div>
-                    <strong>Instance ID:</strong> {zapi.instanceId}
-                  </div>
-                ) : null}
-                {zapi.receivedCallbackUrl ? (
-                  <div>
-                    <strong>Webhook (received):</strong> {zapi.receivedCallbackUrl}
-                  </div>
-                ) : zapi.suggestedWebhookUrl ? (
-                  <div>
-                    <strong>Suggested webhook:</strong> {zapi.suggestedWebhookUrl}
-                  </div>
-                ) : null}
-                {zapi.statusMessage ? (
-                  <div>
-                    <strong>Status:</strong> {zapi.statusMessage}
-                  </div>
-                ) : null}
+                    <Typography variant="caption" color="text.secondary">
+                      Scan a new QR only after disconnecting.
+                    </Typography>
+                  </Box>
+                ) : qrImage ? (
+                  <Box
+                    sx={{
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      textAlign: 'center',
+                      bgcolor: 'background.paper',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                      WhatsApp → Linked devices → Link a device
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={qrImage}
+                      alt="WhatsApp QR code"
+                      sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      QR expires in ~20s. Refreshing while pairing…
+                    </Typography>
+                    <Button size="small" sx={{ mt: 1 }} onClick={() => void loadQr()}>
+                      Refresh QR now
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: 2,
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      overflow: 'hidden',
+                      bgcolor: 'grey.50',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(5, 1fr)',
+                        gridTemplateRows: 'repeat(5, 1fr)',
+                        gap: 0.75,
+                        p: 2,
+                        filter: 'blur(6px)',
+                        opacity: 0.45,
+                      }}
+                      aria-hidden
+                    >
+                      {Array.from({ length: 25 }).map((_, i) => (
+                        <Skeleton
+                          key={i}
+                          variant="rounded"
+                          sx={{ width: '100%', height: '100%', bgcolor: 'grey.300' }}
+                        />
+                      ))}
+                    </Box>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        p: 2,
+                        bgcolor: 'rgba(255,255,255,0.55)',
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        startIcon={
+                          qrState.isFetching ? (
+                            <CircularProgress size={16} color="inherit" />
+                          ) : (
+                            <QrCodeScannerIcon />
+                          )
+                        }
+                        onClick={() => void handleStartPairing()}
+                        disabled={qrState.isFetching}
+                      >
+                        {qrState.isFetching ? 'Loading QR…' : 'Show QR code'}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
               </Box>
 
-              {zapi.networkError && zapi.zapiReachable === false ? (
-                <Alert severity="warning">
-                  Cannot reach Z-API (
-                  {zapi.networkError.code || zapi.networkError.message || 'network error'}). Check
-                  internet/VPN/firewall and <code>ZAPI_BASE_URL</code> in server .env, then refresh.
-                </Alert>
-              ) : null}
-
-              {(zapi.meError || zapi.statusError || zapi.deviceError) && !zapi.connected ? (
-                <Alert severity="info">
-                  Z-API detail: check instance/token and Client-Token in server .env.
-                </Alert>
-              ) : null}
-
-              <Divider />
-
-              <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  disabled={!zapi.connected || disconnectState.isLoading}
-                  onClick={() => setDisconnectDialogOpen(true)}
-                >
-                  {disconnectState.isLoading ? 'Disconnecting…' : 'Disconnect WhatsApp'}
-                </Button>
-                <Button variant="outlined" onClick={() => void refetchZapi()}>
-                  Refresh status
-                </Button>
-                {!zapi.connected ? (
-                  <Button
-                    variant="contained"
-                    startIcon={<QrCodeScannerIcon />}
-                    onClick={() => void handleStartPairing()}
-                    disabled={qrState.isFetching}
-                  >
-                    {qrState.isFetching ? 'Loading QR…' : 'Show QR code to connect'}
-                  </Button>
-                ) : null}
-              </Stack>
-
-              {disconnectState.isError ? (
-                <Alert severity="error">{getErrorMessage(disconnectState.error)}</Alert>
-              ) : null}
-              {qrState.isError ? (
-                <Alert severity="error">{getErrorMessage(qrState.error)}</Alert>
-              ) : null}
-
-              {qrImage && !zapi.connected ? (
-                <Box
-                  sx={{
-                    mt: 1,
-                    p: 2,
-                    border: '1px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    textAlign: 'center',
-                    maxWidth: 320,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                    Open WhatsApp → Linked devices → Link a device → scan this code
-                  </Typography>
-                  <Box
-                    component="img"
-                    src={qrImage}
-                    alt="WhatsApp QR code"
-                    sx={{ width: '100%', maxWidth: 280, height: 'auto' }}
+              <Stack spacing={2} sx={{ minWidth: 0 }}>
+                <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  <Chip
+                    size="small"
+                    label={zapi.connected ? 'Connected' : 'Not connected'}
+                    color={zapi.connected ? 'success' : 'default'}
                   />
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    QR expires in ~20s. Refreshing automatically while pairing…
-                  </Typography>
-                  <Button size="small" sx={{ mt: 1 }} onClick={() => void loadQr()}>
-                    Refresh QR now
-                  </Button>
+                  {zapi.smartphoneConnected != null ? (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={zapi.smartphoneConnected ? 'Phone online' : 'Phone offline'}
+                    />
+                  ) : null}
+                  {zapi.clientTokenConfigured ? (
+                    <Chip size="small" variant="outlined" label="Client token OK" />
+                  ) : (
+                    <Chip size="small" color="warning" variant="outlined" label="No client token" />
+                  )}
+                </Stack>
+
+                <Box sx={{ typography: 'body2' }}>
+                  <div>
+                    <strong>Enrolled number:</strong>{' '}
+                    {zapi.enrolledPhone ? formatPhoneDisplay(zapi.enrolledPhone) : '—'}
+                    {zapi.enrolledPhone && zapi.enrolledPhoneSource ? (
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        (via Z-API {zapi.enrolledPhoneSource})
+                      </Typography>
+                    ) : null}
+                  </div>
+                  {zapi.deviceName ? (
+                    <div>
+                      <strong>WhatsApp profile:</strong> {zapi.deviceName}
+                    </div>
+                  ) : null}
+                  {zapi.instanceName ? (
+                    <div>
+                      <strong>Instance:</strong> {zapi.instanceName}
+                    </div>
+                  ) : null}
+                  {zapi.instanceId ? (
+                    <div>
+                      <strong>Instance ID:</strong> {zapi.instanceId}
+                    </div>
+                  ) : null}
+                  {zapi.receivedCallbackUrl ? (
+                    <div>
+                      <strong>Webhook (received):</strong> {zapi.receivedCallbackUrl}
+                    </div>
+                  ) : zapi.suggestedWebhookUrl ? (
+                    <div>
+                      <strong>Suggested webhook:</strong> {zapi.suggestedWebhookUrl}
+                    </div>
+                  ) : null}
+                  {zapi.statusMessage ? (
+                    <div>
+                      <strong>Status:</strong> {zapi.statusMessage}
+                    </div>
+                  ) : null}
                 </Box>
-              ) : null}
-            </Stack>
+
+                {zapi.networkError && zapi.zapiReachable === false ? (
+                  <Alert severity="warning">
+                    Cannot reach Z-API (
+                    {zapi.networkError.code || zapi.networkError.message || 'network error'}). Check
+                    internet/VPN/firewall and <code>ZAPI_BASE_URL</code> in server .env, then refresh.
+                  </Alert>
+                ) : null}
+
+                {(zapi.meError || zapi.statusError || zapi.deviceError) && !zapi.connected ? (
+                  <Alert severity="info">
+                    Z-API detail: check instance/token and Client-Token in server .env.
+                  </Alert>
+                ) : null}
+
+                {disconnectState.isError ? (
+                  <Alert severity="error">{getErrorMessage(disconnectState.error)}</Alert>
+                ) : null}
+                {qrState.isError ? (
+                  <Alert severity="error">{getErrorMessage(qrState.error)}</Alert>
+                ) : null}
+
+                <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    disabled={!zapi.connected || disconnectState.isLoading}
+                    onClick={() => setDisconnectDialogOpen(true)}
+                  >
+                    {disconnectState.isLoading ? 'Disconnecting…' : 'Disconnect WhatsApp'}
+                  </Button>
+                  <Button variant="outlined" onClick={() => void refetchZapi()}>
+                    Refresh status
+                  </Button>
+                </Stack>
+              </Stack>
+            </Box>
           )}
         </CardContent>
       </Card>

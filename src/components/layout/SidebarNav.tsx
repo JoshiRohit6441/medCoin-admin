@@ -14,11 +14,34 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
-  Typography,
 } from '@mui/material'
 import type { ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { SIDEBAR_COLOR } from '../auth/authTheme'
 import { BRAND_LOGO_SRC, BRAND_NAME } from '../../constants/brand'
+
+function NavIconBox({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      sx={{
+        width: 32,
+        height: 32,
+        borderRadius: 1.5,
+        bgcolor: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        color: SIDEBAR_COLOR,
+        border: '1px solid',
+        borderColor: 'rgba(9, 23, 57, 0.08)',
+        boxShadow: '0 1px 2px rgba(9, 23, 57, 0.06)',
+      }}
+    >
+      {children}
+    </Box>
+  )
+}
 
 export const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true, icon: DashboardOutlinedIcon },
@@ -102,15 +125,7 @@ export default function SidebarNav({
         </>
       ) : null}
 
-      {!collapsed ? (
-        <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-            MENU
-          </Typography>
-        </Box>
-      ) : null}
-
-      <List dense disablePadding sx={{ py: 0.5, flex: 1, px: collapsed ? 0.5 : 0 }}>
+      <List dense disablePadding sx={{ py: 0.75, flex: 1, px: collapsed ? 0.75 : 1 }}>
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const selected =
@@ -126,28 +141,48 @@ export default function SidebarNav({
               selected={selected}
               onClick={onNavigate}
               sx={{
-                mx: collapsed ? 0.5 : 1,
-                borderRadius: 1,
-                mb: 0.25,
+                mx: collapsed ? 0 : 0.5,
+                borderRadius: 2,
+                mb: 0.5,
                 justifyContent: collapsed ? 'center' : 'flex-start',
-                minHeight: 48,
-                px: collapsed ? 1 : 2,
+                minHeight: 44,
+                px: collapsed ? 1 : 1.25,
+                py: 0.75,
+                gap: 1.25,
+                color: SIDEBAR_COLOR,
+                '&:hover': {
+                  bgcolor: 'rgba(9, 23, 57, 0.04)',
+                },
                 '&.Mui-selected': {
-                  bgcolor: 'grey.100',
-                  '&:hover': { bgcolor: 'grey.200' },
+                  bgcolor: SIDEBAR_COLOR,
+                  color: '#fff',
+                  '&:hover': {
+                    bgcolor: SIDEBAR_COLOR,
+                  },
                 },
               }}
             >
               <ListItemIcon
                 sx={{
-                  minWidth: collapsed ? 0 : 36,
-                  color: selected ? 'primary.main' : 'text.secondary',
+                  minWidth: collapsed ? 0 : 40,
                   justifyContent: 'center',
                 }}
               >
-                <Icon fontSize="small" />
+                <NavIconBox>
+                  <Icon sx={{ fontSize: 18 }} />
+                </NavIconBox>
               </ListItemIcon>
-              {!collapsed ? <ListItemText primary={item.label} /> : null}
+              {!collapsed ? (
+                <ListItemText
+                  primary={item.label}
+                  sx={{
+                    '& .MuiListItemText-primary': {
+                      fontWeight: selected ? 600 : 500,
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+              ) : null}
             </ListItemButton>
           )
 

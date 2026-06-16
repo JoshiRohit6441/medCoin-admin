@@ -1,5 +1,6 @@
 export const AUTH_NAVY = '#0f2744'
 export const AUTH_NAVY_LIGHT = '#1a3a5c'
+export const SIDEBAR_COLOR = '#091739'
 
 export const authFieldSx = {
   '& .MuiOutlinedInput-root': {

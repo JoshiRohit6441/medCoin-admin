@@ -94,3 +94,16 @@ export function sanitizeDateInputValue(value: string): string {
   if (!raw) return ''
   return isValidDateInputValue(raw) ? raw : ''
 }
+
+export function buildDateRangeParams(
+  from: string,
+  to: string,
+  field: 'created' | 'appointment' = 'created'
+) {
+  const validFrom = isValidDateInputValue(from) && from ? from : undefined
+  const validTo = isValidDateInputValue(to) && to ? to : undefined
+  if (field === 'appointment') {
+    return { appointmentFrom: validFrom, appointmentTo: validTo }
+  }
+  return { createdFrom: validFrom, createdTo: validTo }
+}

@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useLogoutMutation } from '../../store/api/medcoinAdminApi'
+import { SIDEBAR_COLOR } from '../auth/authTheme'
 import AdminUserMenu from './AdminUserMenu'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 
@@ -92,7 +93,7 @@ export default function AdminLayout() {
       onClick={() => setCollapsed((v) => !v)}
       aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       sx={{
-        color: 'text.secondary',
+        color: SIDEBAR_COLOR,
         ...(collapsed
           ? {}
           : {

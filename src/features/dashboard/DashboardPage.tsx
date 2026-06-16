@@ -1,12 +1,13 @@
-import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
-import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
-import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
-import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
-import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined'
-import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
-import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined'
-import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
-import type { ReactNode } from 'react'
+import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
+import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
+import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
+import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -16,7 +17,7 @@ import {
   LinearProgress,
   Stack,
   Typography,
-} from '@mui/material'
+} from "@mui/material";
 import {
   Bar,
   BarChart,
@@ -29,64 +30,74 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts'
-import { Link } from 'react-router-dom'
-import { useGetOverviewQuery } from '../../store/api/medcoinAdminApi'
-import { getErrorMessage } from '../../utils/errorMessage'
-import { AUTH_NAVY } from '../../components/auth/authTheme'
-import { ACTIVE_SESSION_STATES } from '../../utils/consultationState'
+} from "recharts";
+import { Link } from "react-router-dom";
+import ListFilterBar from "../../components/forms/ListFilterBar";
+import { useGetOverviewQuery, useGetZapiConnectionQuery } from "../../store/api/medcoinAdminApi";
+import { getErrorMessage } from "../../utils/errorMessage";
+import { buildDateRangeParams } from "../../utils/dateFormat";
+import { AUTH_NAVY } from "../../components/auth/authTheme";
+import { ACTIVE_SESSION_STATES } from "../../utils/consultationState";
 
-const NAVY = AUTH_NAVY
-const CHART_COLORS = ['#0f2744', '#1a3a5c', '#2563eb', '#059669', '#ea580c', '#dc2626', '#94a3b8']
+const NAVY = AUTH_NAVY;
+const CHART_COLORS = [
+  "#0f2744",
+  "#1a3a5c",
+  "#2563eb",
+  "#059669",
+  "#ea580c",
+  "#dc2626",
+  "#94a3b8",
+];
 
 const STATE_COLORS: Record<string, string> = {
-  EXPIRED: '#94a3b8',
-  COMPLETED: '#059669',
-  TRIAGE_IN_PROGRESS: '#2563eb',
-  PAYMENT_PENDING: '#ea580c',
-  BOOKING_PENDING: '#8b5cf6',
-  BOOKED: '#0d9488',
-  DOCTOR_NOTIFIED: '#1a3a5c',
-  STARTED: '#cbd5e1',
-  TRIAGE_COMPLETED: '#60a5fa',
-  PAID: '#10b981',
-}
+  EXPIRED: "#94a3b8",
+  COMPLETED: "#059669",
+  TRIAGE_IN_PROGRESS: "#2563eb",
+  PAYMENT_PENDING: "#ea580c",
+  BOOKING_PENDING: "#8b5cf6",
+  BOOKED: "#0d9488",
+  DOCTOR_NOTIFIED: "#1a3a5c",
+  STARTED: "#cbd5e1",
+  TRIAGE_COMPLETED: "#60a5fa",
+  PAID: "#10b981",
+};
 
 const SEVERITY_COLORS: Record<string, string> = {
-  Low: '#22c55e',
-  Medium: '#f59e0b',
-  High: '#ef4444',
-  Unknown: '#94a3b8',
-  '': '#94a3b8',
-}
+  Low: "#22c55e",
+  Medium: "#f59e0b",
+  High: "#ef4444",
+  Unknown: "#94a3b8",
+  "": "#94a3b8",
+};
 
 type KpiCardProps = {
-  title: string
-  value: string | number
-  subtitle?: string
-  icon: ReactNode
-  accent: string
-  to?: string
-}
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: ReactNode;
+  accent: string;
+  to?: string;
+};
 
 function KpiCard({ title, value, subtitle, icon, accent, to }: KpiCardProps) {
   const inner = (
     <Card
       variant="outlined"
       sx={{
-        height: '100%',
+        height: "100%",
         borderRadius: 2,
-        transition: 'box-shadow 0.2s, transform 0.2s',
+        transition: "box-shadow 0.2s, transform 0.2s",
         ...(to
           ? {
-              cursor: 'pointer',
-              '&:hover': { boxShadow: 3, transform: 'translateY(-2px)' },
+              cursor: "pointer",
+              "&:hover": { boxShadow: 3, transform: "translateY(-2px)" },
             }
           : {}),
       }}
     >
-      <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
+      <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
           <Box
             sx={{
               width: 44,
@@ -94,23 +105,34 @@ function KpiCard({ title, value, subtitle, icon, accent, to }: KpiCardProps) {
               borderRadius: 2,
               bgcolor: `${accent}18`,
               color: accent,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               flexShrink: 0,
             }}
           >
             {icon}
           </Box>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 600 }}
+            >
               {title}
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: NAVY, lineHeight: 1.2, mt: 0.25 }}>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 800, color: NAVY, lineHeight: 1.2, mt: 0.25 }}
+            >
               {value}
             </Typography>
             {subtitle ? (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mt: 0.5 }}
+              >
                 {subtitle}
               </Typography>
             ) : null}
@@ -118,61 +140,92 @@ function KpiCard({ title, value, subtitle, icon, accent, to }: KpiCardProps) {
         </Stack>
       </CardContent>
     </Card>
-  )
+  );
 
   if (to) {
     return (
-      <Box component={Link} to={to} sx={{ textDecoration: 'none', color: 'inherit' }}>
+      <Box
+        component={Link}
+        to={to}
+        sx={{ textDecoration: "none", color: "inherit" }}
+      >
         {inner}
       </Box>
-    )
+    );
   }
-  return inner
+  return inner;
 }
 
 function formatMoney(amount: number, currency: string) {
-  if (currency === 'BRL') {
-    return `R$ ${amount.toFixed(2).replace('.', ',')}`
+  if (currency === "BRL") {
+    return `R$ ${amount.toFixed(2).replace(".", ",")}`;
   }
-  return `${amount} ${currency}`
+  return `${amount} ${currency}`;
 }
 
 export default function DashboardPage() {
-  const { data, isLoading, isError, error } = useGetOverviewQuery()
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const dateParams = useMemo(
+    () => buildDateRangeParams(createdFrom, createdTo),
+    [createdFrom, createdTo],
+  );
+  const { data, isLoading, isError, error } = useGetOverviewQuery(dateParams);
+  const { data: zapi, isLoading: zapiLoading } = useGetZapiConnectionQuery();
+
+  const showWhatsAppWarning =
+    !zapiLoading && Boolean(zapi) && zapi?.connected !== true;
 
   if (isLoading) {
-    return <LinearProgress />
+    return <LinearProgress />;
   }
 
   if (isError) {
-    return <Alert severity="error">{getErrorMessage(error)}</Alert>
+    return <Alert severity="error">{getErrorMessage(error)}</Alert>;
   }
 
-  const c = data?.counts
-  const pay = data?.payments
-  const byState = data?.consultationsByState ?? []
-  const bySeverity = data?.consultationsBySeverity ?? []
-  const byDay = data?.consultationsByDay ?? []
+  const c = data?.counts;
+  const pay = data?.payments;
+  const byState = data?.consultationsByState ?? [];
+  const bySeverity = data?.consultationsBySeverity ?? [];
+  const byDay = data?.consultationsByDay ?? [];
 
   const pieData = byState.map((row) => ({
     name: row.label,
     value: row.count,
-    fill: STATE_COLORS[row.state || ''] || CHART_COLORS[0],
-  }))
+    fill: STATE_COLORS[row.state || ""] || CHART_COLORS[0],
+  }));
 
   const severityData = bySeverity.map((row) => ({
-    name: row.severity || 'Unknown',
+    name: row.severity || "Unknown",
     count: row.count,
-    fill: SEVERITY_COLORS[row.severity] || '#94a3b8',
-  }))
+    fill: SEVERITY_COLORS[row.severity] || "#94a3b8",
+  }));
 
   const completionRate =
     c?.consultations && c.consultations > 0
       ? Math.round(((c.bookedSessions ?? 0) / c.consultations) * 100)
-      : 0
+      : 0;
 
   return (
     <Stack spacing={3}>
+      {showWhatsAppWarning ? (
+        <Box component={Link} to="/settings" sx={{ textDecoration: "none", color: "inherit" }}>
+          <Alert
+            severity="warning"
+            sx={{
+              cursor: "pointer",
+              "&:hover": {
+                bgcolor: "warning.light",
+              },
+            }}
+          >
+            WhatsApp is not connected. Click here to open Settings and scan the QR code
+            to connect your number.
+          </Alert>
+        </Box>
+      ) : null}
+
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 700, color: NAVY }}>
           Dashboard
@@ -182,14 +235,28 @@ export default function DashboardPage() {
         </Typography>
       </Box>
 
+      <ListFilterBar
+        showSearch={false}
+        from={createdFrom}
+        to={createdTo}
+        onFromChange={setCreatedFrom}
+        onToChange={setCreatedTo}
+        onReset={() => {
+          setCreatedFrom("");
+          setCreatedTo("");
+        }}
+        resetDisabled={!createdFrom && !createdTo}
+        sx={{ maxWidth: { lg: 720 } }}
+      />
+
       <Box
         sx={{
-          display: 'grid',
+          display: "grid",
           gap: 2,
           gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            lg: 'repeat(5, 1fr)',
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            lg: "repeat(5, 1fr)",
           },
         }}
       >
@@ -237,9 +304,9 @@ export default function DashboardPage() {
 
       <Box
         sx={{
-          display: 'grid',
+          display: "grid",
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
         }}
       >
         <KpiCard
@@ -248,7 +315,7 @@ export default function DashboardPage() {
           subtitle={
             pay?.revenueEstimate?.label
               ? `Est. ${formatMoney(pay.revenueEstimate.amount, pay.revenueEstimate.currency)}`
-              : 'Mercado Pago confirmed'
+              : "Mercado Pago confirmed"
           }
           icon={<PaymentsOutlinedIcon />}
           accent="#059669"
@@ -274,27 +341,45 @@ export default function DashboardPage() {
 
       <Box
         sx={{
-          display: 'grid',
+          display: "grid",
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' },
+          gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
         }}
       >
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 2 }}>
-              Consultations — last 14 days
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: NAVY, mb: 2 }}
+            >
+              Consultations
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 220, sm: 280 } }}>
+            <Box sx={{ width: "100%", height: { xs: 220, sm: 280 } }}>
               <ResponsiveContainer>
-                <BarChart data={byDay} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <BarChart
+                  data={byDay}
+                  margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                  />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                   <Tooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
-                    formatter={(value) => [value, 'Consultations']}
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid #e2e8f0",
+                    }}
+                    formatter={(value) => [value, "Consultations"]}
                   />
-                  <Bar dataKey="count" fill={NAVY} radius={[6, 6, 0, 0]} maxBarSize={48} />
+                  <Bar
+                    dataKey="count"
+                    fill={NAVY}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={48}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
@@ -303,13 +388,20 @@ export default function DashboardPage() {
 
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 0.5 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: NAVY, mb: 0.5 }}
+            >
               By triage severity
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 2 }}
+            >
               Completed consultancies or sessions with severity assigned
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 220, sm: 280 } }}>
+            <Box sx={{ width: "100%", height: { xs: 220, sm: 280 } }}>
               {severityData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No severity data yet.
@@ -321,9 +413,22 @@ export default function DashboardPage() {
                     layout="vertical"
                     margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="name" width={56} tick={{ fontSize: 12 }} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e2e8f0"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={56}
+                      tick={{ fontSize: 12 }}
+                    />
                     <Tooltip contentStyle={{ borderRadius: 8 }} />
                     <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={28}>
                       {severityData.map((entry) => (
@@ -340,17 +445,27 @@ export default function DashboardPage() {
 
       <Box
         sx={{
-          display: 'grid',
+          display: "grid",
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
         }}
       >
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 2 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: NAVY, mb: 2 }}
+            >
               Consultations by state
             </Typography>
-            <Box sx={{ width: '100%', height: { xs: 220, sm: 260 }, display: 'flex', justifyContent: 'center' }}>
+            <Box
+              sx={{
+                width: "100%",
+                height: { xs: 220, sm: 260 },
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
               {pieData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No data yet.
@@ -385,12 +500,23 @@ export default function DashboardPage() {
           <CardContent>
             <Stack
               direction="row"
-              sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
             >
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 700, color: NAVY }}
+              >
                 Pipeline breakdown
               </Typography>
-              <Chip label={`${c?.consultations ?? 0} total`} size="small" variant="outlined" />
+              <Chip
+                label={`${c?.consultations ?? 0} total`}
+                size="small"
+                variant="outlined"
+              />
             </Stack>
             <Stack spacing={2}>
               {byState.length === 0 ? (
@@ -402,14 +528,18 @@ export default function DashboardPage() {
                   <Box key={String(row.state)}>
                     <Stack
                       direction="row"
-                      sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}
+                      sx={{
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 0.5,
+                      }}
                     >
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
                         {row.label}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {row.count}{' '}
-                        <Box component="span" sx={{ color: 'text.disabled' }}>
+                        {row.count}{" "}
+                        <Box component="span" sx={{ color: "text.disabled" }}>
                           ({row.percent}%)
                         </Box>
                       </Typography>
@@ -420,10 +550,10 @@ export default function DashboardPage() {
                       sx={{
                         height: 8,
                         borderRadius: 4,
-                        bgcolor: '#f1f5f9',
-                        '& .MuiLinearProgress-bar': {
+                        bgcolor: "#f1f5f9",
+                        "& .MuiLinearProgress-bar": {
                           borderRadius: 4,
-                          bgcolor: STATE_COLORS[row.state || ''] || NAVY,
+                          bgcolor: STATE_COLORS[row.state || ""] || NAVY,
                         },
                       }}
                     />
@@ -435,5 +565,5 @@ export default function DashboardPage() {
         </Card>
       </Box>
     </Stack>
-  )
+  );
 }

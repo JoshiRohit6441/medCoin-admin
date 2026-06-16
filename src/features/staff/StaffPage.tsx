@@ -7,20 +7,13 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-data-grid'
+import { DataGrid } from '@mui/x-data-grid'
 import { useState } from 'react'
+import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useGetStaffQuery, useListStaffQuery } from '../../store/api/medcoinAdminApi'
 import type { StaffMember } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
-import { formatDateTime } from '../../utils/dateFormat'
-
-function Toolbar() {
-  return (
-    <GridToolbarContainer sx={{ gap: 1, px: 1, py: 1 }}>
-      <GridToolbarQuickFilter debounceMs={400} />
-    </GridToolbarContainer>
-  )
-}
+import { buildDateRangeParams, formatDateTime } from '../../utils/dateFormat'
 
 const columns: GridColDef<StaffMember>[] = [
   { field: 'name', headerName: 'Name', minWidth: 140, flex: 0.45 },
@@ -47,6 +40,8 @@ export default function StaffPage() {
     { field: 'createdAt', sort: 'desc' },
   ])
   const [quickFilter, setQuickFilter] = useState('')
+  const [createdFrom, setCreatedFrom] = useState('')
+  const [createdTo, setCreatedTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const sort = sortModel[0]
@@ -57,9 +52,18 @@ export default function StaffPage() {
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'desc',
     search: quickFilter || undefined,
     q: quickFilter || undefined,
+    ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const detailQuery = useGetStaffQuery(selectedId ?? '', { skip: !selectedId })
+  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo)
+
+  function resetFilters() {
+    setQuickFilter('')
+    setCreatedFrom('')
+    setCreatedTo('')
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }
 
   return (
     <Stack spacing={2}>
@@ -72,6 +76,26 @@ export default function StaffPage() {
         </Button>
       </Box>
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
+      <ListFilterBar
+        search={quickFilter}
+        onSearchChange={(value) => {
+          setQuickFilter(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        searchPlaceholder="Search by name, email, or phone"
+        from={createdFrom}
+        to={createdTo}
+        onFromChange={(value) => {
+          setCreatedFrom(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onToChange={(value) => {
+          setCreatedTo(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onReset={resetFilters}
+        resetDisabled={!hasActiveFilters}
+      />
       <Box sx={{ width: '100%', height: 520 }}>
         <DataGrid
           rows={data?.items ?? []}
@@ -85,18 +109,10 @@ export default function StaffPage() {
           onPaginationModelChange={setPaginationModel}
           sortModel={sortModel}
           onSortModelChange={setSortModel}
-          filterMode="server"
-          onFilterModelChange={(m) => {
-            const q = m.quickFilterValues?.join(' ') ?? ''
-            setQuickFilter(q)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
           onRowClick={(params) => setSelectedId(String(params.id))}
           pageSizeOptions={[10, 25, 50]}
           density="compact"
           disableRowSelectionOnClick
-          slots={{ toolbar: Toolbar }}
-          showToolbar
           sx={{
             border: '1px solid',
             borderColor: 'divider',

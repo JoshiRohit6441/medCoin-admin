@@ -11,9 +11,10 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-data-grid'
+import { DataGrid } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
 import {
@@ -29,17 +30,10 @@ import {
   consultationStateLabel,
 } from '../../utils/consultationState'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
-import { formatDateTime } from '../../utils/dateFormat'
+import { formatDateTime, buildDateRangeParams } from '../../utils/dateFormat'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageDrawerCloseSx, pageStatusChipSx } from '../../utils/pageButtons'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
-
-function Toolbar() {
-  return (
-    <GridToolbarContainer sx={{ gap: 1, px: 1, py: 1 }}>
-      <GridToolbarQuickFilter debounceMs={400} />
-    </GridToolbarContainer>
-  )
-}
 
 function patientField(row: Transaction, key: 'phone' | 'name'): string {
   const p = row.patient
@@ -83,11 +77,14 @@ export default function TransactionsPage() {
   ])
   const [quickFilter, setQuickFilter] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('')
+  const [createdFrom, setCreatedFrom] = useState('')
+  const [createdTo, setCreatedTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedSerial, setSelectedSerial] = useState<number | null>(null)
 
   const sort = sortModel[0]
-  const { data: stats } = useGetTransactionStatsQuery()
+  const dateParams = buildDateRangeParams(createdFrom, createdTo)
+  const { data: stats } = useGetTransactionStatsQuery(dateParams)
   const { data, isLoading, isError, error, refetch, isFetching } =
     useListTransactionsQuery({
       page: paginationModel.page + 1,
@@ -96,6 +93,7 @@ export default function TransactionsPage() {
       sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'desc',
       search: quickFilter || undefined,
       paymentStatus: paymentStatus || undefined,
+      ...dateParams,
     })
 
   const detailQuery = useGetTransactionQuery(selectedId ?? '', { skip: !selectedId })
@@ -140,15 +138,19 @@ export default function TransactionsPage() {
       {
         field: 'paymentStatusLabel',
         headerName: 'Payment',
-        minWidth: 130,
-        flex: 0.35,
+        minWidth: 148,
+        width: 148,
+        sortable: false,
         renderCell: ({ row }) => (
-          <Chip
-            size="small"
-            label={row.paymentStatusLabel}
-            color={paymentChipColor(row.paymentStatus)}
-            variant="outlined"
-          />
+          <Box sx={pageDataGridCellSx}>
+            <Chip
+              size="small"
+              label={row.paymentStatusLabel}
+              color={paymentChipColor(row.paymentStatus)}
+              variant="outlined"
+              sx={pageStatusChipSx}
+            />
+          </Box>
         ),
       },
       {
@@ -200,6 +202,15 @@ export default function TransactionsPage() {
   )
 
   const item = detailQuery.data?.item
+  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo || paymentStatus)
+
+  function resetFilters() {
+    setQuickFilter('')
+    setCreatedFrom('')
+    setCreatedTo('')
+    setPaymentStatus('')
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }
 
   return (
     <Stack spacing={2}>
@@ -207,7 +218,7 @@ export default function TransactionsPage() {
         <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>
           Transactions
         </Typography>
-        <Button size="small" variant="outlined" onClick={() => refetch()} disabled={isFetching}>
+        <Button {...pageButtonProps} onClick={() => refetch()} disabled={isFetching}>
           Refresh
         </Button>
       </Box>
@@ -249,25 +260,46 @@ export default function TransactionsPage() {
         </Box>
       ) : null}
 
-      <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-        <InputLabel>Payment status</InputLabel>
-        <Select
-          label="Payment status"
-          value={paymentStatus}
-          onChange={(e) => {
-            setPaymentStatus(e.target.value)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
-        >
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="approved">Approved</MenuItem>
-          <MenuItem value="processing">Processing</MenuItem>
-          <MenuItem value="awaiting">Awaiting payment</MenuItem>
-          <MenuItem value="failed">Failed</MenuItem>
-          <MenuItem value="mock">Mock</MenuItem>
-          <MenuItem value="none">No payment</MenuItem>
-        </Select>
-      </FormControl>
+      <ListFilterBar
+        search={quickFilter}
+        onSearchChange={(value) => {
+          setQuickFilter(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        searchPlaceholder="Search patient, booking code, or payment ID"
+        from={createdFrom}
+        to={createdTo}
+        onFromChange={(value) => {
+          setCreatedFrom(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onToChange={(value) => {
+          setCreatedTo(value)
+          setPaginationModel((p) => ({ ...p, page: 0 }))
+        }}
+        onReset={resetFilters}
+        resetDisabled={!hasActiveFilters}
+      >
+        <FormControl size="small" fullWidth sx={{ gridColumn: { xs: '1', sm: 'span 2', md: 'span 1' } }}>
+          <InputLabel>Payment status</InputLabel>
+          <Select
+            label="Payment status"
+            value={paymentStatus}
+            onChange={(e) => {
+              setPaymentStatus(e.target.value)
+              setPaginationModel((p) => ({ ...p, page: 0 }))
+            }}
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="processing">Processing</MenuItem>
+            <MenuItem value="awaiting">Awaiting payment</MenuItem>
+            <MenuItem value="failed">Failed</MenuItem>
+            <MenuItem value="mock">Mock</MenuItem>
+            <MenuItem value="none">No payment</MenuItem>
+          </Select>
+        </FormControl>
+      </ListFilterBar>
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
 
@@ -295,21 +327,13 @@ export default function TransactionsPage() {
           onPaginationModelChange={setPaginationModel}
           sortModel={sortModel}
           onSortModelChange={setSortModel}
-          filterMode="server"
-          onFilterModelChange={(m) => {
-            const q = m.quickFilterValues?.join(' ') ?? ''
-            setQuickFilter(q)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
           onRowClick={(params) => {
             setSelectedId(String(params.id))
             setSelectedSerial(Number(params.row.__serial) || null)
           }}
           pageSizeOptions={[10, 25, 50, 100]}
-          density="compact"
+          {...pageDataGridDefaults}
           disableRowSelectionOnClick
-          slots={{ toolbar: Toolbar }}
-          showToolbar
           sx={dataGridSx}
         />
       </Box>
@@ -440,8 +464,7 @@ export default function TransactionsPage() {
               </div>
               {item.paymentStatus === 'processing' ? (
                 <Button
-                  size="small"
-                  variant="contained"
+                  {...pageButtonProps}
                   disabled={syncState.isLoading}
                   onClick={() => {
                     if (selectedId) void handleSyncPayment(selectedId)
@@ -457,8 +480,7 @@ export default function TransactionsPage() {
                     WhatsApp.
                   </Alert>
                   <Button
-                    size="small"
-                    variant="contained"
+                    {...pageButtonProps}
                     color="warning"
                     disabled={mockCompleteState.isLoading}
                     onClick={() => {
@@ -473,7 +495,12 @@ export default function TransactionsPage() {
               ) : null}
             </Stack>
           ) : null}
-          <Button sx={{ mt: 2 }} onClick={() => setSelectedId(null)} fullWidth variant="outlined">
+          <Button
+            {...pageButtonProps}
+            fullWidth
+            sx={pageDrawerCloseSx}
+            onClick={() => setSelectedId(null)}
+          >
             Close
           </Button>
       </DetailDrawer>
