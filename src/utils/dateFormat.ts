@@ -117,3 +117,12 @@ export function buildDateRangeParams(
   }
   return { createdFrom: validFrom, createdTo: validTo }
 }
+
+/** Date filter inputs — Brazilian display (picker still stores YYYY-MM-DD). */
+export const DATE_FILTER_PLACEHOLDER = 'dd/mm/yyyy'
+
+export function formatIsoDateForFilter(iso: string): string {
+  if (!isValidDateInputValue(iso)) return ''
+  const [yyyy, mm, dd] = iso.split('-')
+  return `${dd}/${mm}/${yyyy}`
+}

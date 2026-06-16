@@ -1,8 +1,11 @@
-import { TextField, type TextFieldProps } from '@mui/material'
-import type { ClipboardEvent, FormEvent, KeyboardEvent, MouseEvent } from 'react'
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import { Box, IconButton, InputAdornment, TextField, type TextFieldProps } from '@mui/material'
+import { useRef } from 'react'
 import {
+  DATE_FILTER_PLACEHOLDER,
   DATE_INPUT_MAX,
   DATE_INPUT_MIN,
+  formatIsoDateForFilter,
   isValidDateInputValue,
   sanitizeDateInputValue,
 } from '../../utils/dateFormat'
@@ -12,22 +15,8 @@ type DateFilterFieldProps = Omit<TextFieldProps, 'type' | 'value' | 'onChange'> 
   onValueChange: (value: string) => void
 }
 
-const ALLOWED_KEYS = new Set([
-  'Tab',
-  'Escape',
-  'Enter',
-  'Backspace',
-  'Delete',
-  'ArrowUp',
-  'ArrowDown',
-  'ArrowLeft',
-  'ArrowRight',
-  'Home',
-  'End',
-])
-
-function openDatePicker(input: HTMLInputElement) {
-  if (typeof input.showPicker !== 'function') return
+function openDatePicker(input: HTMLInputElement | null) {
+  if (!input || typeof input.showPicker !== 'function') return
   try {
     input.showPicker()
   } catch {
@@ -35,96 +24,81 @@ function openDatePicker(input: HTMLInputElement) {
   }
 }
 
-function blockManualDateEntry(
-  e: KeyboardEvent<HTMLInputElement>,
-  onValueChange: (value: string) => void
-) {
-  if (e.key === 'Backspace' || e.key === 'Delete') {
-    e.preventDefault()
-    onValueChange('')
-    return
-  }
-
-  if (ALLOWED_KEYS.has(e.key)) return
-  if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'x', 'v'].includes(e.key.toLowerCase())) {
-    if (e.key.toLowerCase() === 'v') e.preventDefault()
-    return
-  }
-
-  e.preventDefault()
-}
-
-function blockManualBeforeInput(e: FormEvent<HTMLInputElement>) {
-  const inputType = (e.nativeEvent as InputEvent).inputType
-  if (
-    inputType === 'insertText' ||
-    inputType === 'insertFromPaste' ||
-    inputType === 'insertFromDrop' ||
-    inputType === 'insertCompositionText'
-  ) {
-    e.preventDefault()
-  }
-}
-
 export default function DateFilterField({
   value,
   onValueChange,
   slotProps,
-  onBlur,
   helperText,
   ...props
 }: DateFilterFieldProps) {
-  const htmlInputProps = slotProps?.htmlInput as Record<string, unknown> | undefined
+  const pickerRef = useRef<HTMLInputElement>(null)
+  const displayValue = value ? formatIsoDateForFilter(value) : ''
+  const inputSlotProps = slotProps?.input as Record<string, unknown> | undefined
+
+  function openPicker() {
+    openDatePicker(pickerRef.current)
+  }
 
   return (
-    <TextField
-      {...props}
-      type="date"
-      value={value}
-      helperText={helperText}
-      onChange={(e) => {
-        const next = e.target.value
-        if (!next || isValidDateInputValue(next)) {
-          onValueChange(next)
-        }
-      }}
-      onBlur={(e) => {
-        onValueChange(sanitizeDateInputValue(e.target.value))
-        onBlur?.(e)
-      }}
-      slotProps={{
-        ...slotProps,
-        inputLabel: { shrink: true, ...slotProps?.inputLabel },
-        htmlInput: {
-          ...htmlInputProps,
-          min: DATE_INPUT_MIN,
-          max: DATE_INPUT_MAX,
-          onClick: (e: MouseEvent<HTMLInputElement>) => {
-            openDatePicker(e.currentTarget)
-            ;(htmlInputProps?.onClick as ((event: MouseEvent<HTMLInputElement>) => void) | undefined)?.(e)
+    <Box sx={{ position: 'relative', width: '100%' }}>
+      <TextField
+        {...props}
+        value={displayValue}
+        placeholder={DATE_FILTER_PLACEHOLDER}
+        helperText={helperText}
+        onClick={openPicker}
+        slotProps={{
+          ...slotProps,
+          inputLabel: { shrink: true, ...slotProps?.inputLabel },
+          input: {
+            ...inputSlotProps,
+            readOnly: true,
+            sx: { cursor: 'pointer', ...(inputSlotProps?.sx as object) },
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  edge="end"
+                  aria-label="Open calendar"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openPicker()
+                  }}
+                >
+                  <CalendarTodayOutlinedIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
           },
-          onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
-            blockManualDateEntry(e, onValueChange)
-            ;(htmlInputProps?.onKeyDown as ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined)?.(e)
-          },
-          onBeforeInput: (e: FormEvent<HTMLInputElement>) => {
-            blockManualBeforeInput(e)
-            ;(htmlInputProps?.onBeforeInput as ((event: FormEvent<HTMLInputElement>) => void) | undefined)?.(e)
-          },
-          onPaste: (e: ClipboardEvent<HTMLInputElement>) => {
-            e.preventDefault()
-            ;(htmlInputProps?.onPaste as ((event: ClipboardEvent<HTMLInputElement>) => void) | undefined)?.(e)
-          },
-        },
-      }}
-      sx={{
-        '& input[type="date"]': { cursor: 'pointer' },
-        '& input[type="date"]::-webkit-calendar-picker-indicator': {
-          cursor: 'pointer',
-          opacity: 1,
-        },
-        ...props.sx,
-      }}
-    />
+        }}
+      />
+      <input
+        ref={pickerRef}
+        type="date"
+        value={value}
+        min={DATE_INPUT_MIN}
+        max={DATE_INPUT_MAX}
+        tabIndex={-1}
+        aria-hidden
+        style={{
+          position: 'absolute',
+          opacity: 0,
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+        onChange={(e) => {
+          const next = sanitizeDateInputValue(e.target.value)
+          if (!next || isValidDateInputValue(next)) {
+            onValueChange(next)
+          }
+        }}
+      />
+    </Box>
   )
 }
