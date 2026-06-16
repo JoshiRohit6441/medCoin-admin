@@ -35,6 +35,10 @@ import { formatPatientAge } from '../../utils/patientDisplay'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { buildDateRangeParams } from '../../utils/dateFormat'
+import {
+  consultationPaymentChipColor,
+  consultationPaymentStatusLabel,
+} from '../../utils/consultationPayment'
 import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageDrawerCloseSx, pageStatusChipSx } from '../../utils/pageButtons'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -185,6 +189,25 @@ const columns: GridColDef<Consultation>[] = [
     flex: 0.3,
   },
   {
+    field: 'paymentStatus',
+    headerName: 'Payment',
+    minWidth: 108,
+    width: 108,
+    sortable: false,
+    valueGetter: (_v, row) => consultationPaymentStatusLabel(row),
+    renderCell: ({ row }) => (
+      <Box sx={pageDataGridCellSx}>
+        <Chip
+          size="small"
+          label={consultationPaymentStatusLabel(row)}
+          color={consultationPaymentChipColor(row)}
+          variant="outlined"
+          sx={pageStatusChipSx}
+        />
+      </Box>
+    ),
+  },
+  {
     field: 'updatedAt',
     headerName: 'Updated',
     minWidth: 180,
@@ -200,6 +223,7 @@ export default function ConsultationsPage() {
 
   const stateFilter = searchParams.get('state') || ''
   const severityFilter = searchParams.get('severity') || ''
+  const paymentStatusFilter = searchParams.get('paymentStatus') || ''
   const searchQuery = searchParams.get('search') || ''
 
   const statusPreset = resolveStatusPreset(stateFilter)
@@ -244,7 +268,7 @@ export default function ConsultationsPage() {
 
   useEffect(() => {
     setPaginationModel((p) => ({ ...p, page: 0 }))
-  }, [stateFilter, severityFilter, searchQuery, createdFrom, createdTo])
+  }, [stateFilter, severityFilter, paymentStatusFilter, searchQuery, createdFrom, createdTo])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -280,7 +304,7 @@ export default function ConsultationsPage() {
     setSearchInput('')
     setCreatedFrom('')
     setCreatedTo('')
-    updateParams({ activeOnly: null, state: null, severity: null, search: null })
+    updateParams({ activeOnly: null, state: null, severity: null, paymentStatus: null, search: null })
   }, [updateParams])
 
   const sort = sortModel[0]
@@ -293,6 +317,10 @@ export default function ConsultationsPage() {
     q: searchQuery || undefined,
     state: stateFilter || undefined,
     severity: severityFilter || undefined,
+    paymentStatus:
+      paymentStatusFilter === 'paid' || paymentStatusFilter === 'unpaid'
+        ? paymentStatusFilter
+        : undefined,
     ...buildDateRangeParams(createdFrom, createdTo),
   })
 
@@ -306,6 +334,7 @@ export default function ConsultationsPage() {
   const hasActiveFilters =
     Boolean(stateFilter) ||
     Boolean(severityFilter) ||
+    Boolean(paymentStatusFilter) ||
     Boolean(searchQuery) ||
     Boolean(createdFrom) ||
     Boolean(createdTo)
@@ -316,12 +345,14 @@ export default function ConsultationsPage() {
     else if (statusPreset === 'completed') parts.push('Status: Completed')
     else if (statusPreset === 'expired') parts.push('Status: Expired')
     if (severityFilter) parts.push(`Severity: ${severityFilter}`)
+    if (paymentStatusFilter === 'paid') parts.push('Payment: Paid')
+    else if (paymentStatusFilter === 'unpaid') parts.push('Payment: Unpaid')
     if (searchQuery) parts.push(`Search: "${searchQuery}"`)
     if (createdFrom || createdTo) {
       parts.push(`Created: ${createdFrom || '…'} – ${createdTo || '…'}`)
     }
     return parts.join(' · ')
-  }, [statusPreset, severityFilter, searchQuery, createdFrom, createdTo])
+  }, [statusPreset, severityFilter, paymentStatusFilter, searchQuery, createdFrom, createdTo])
 
   return (
     <Stack spacing={2}>
@@ -382,8 +413,8 @@ export default function ConsultationsPage() {
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            md: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(3, 1fr)',
           },
         }}
       >
@@ -416,6 +447,21 @@ export default function ConsultationsPage() {
             ))}
           </Select>
         </FormControl>
+        <FormControl size="small" fullWidth>
+          <InputLabel id="consultations-payment-label">Payment status</InputLabel>
+          <Select
+            labelId="consultations-payment-label"
+            label="Payment status"
+            value={paymentStatusFilter}
+            onChange={(e) =>
+              updateParams({ paymentStatus: e.target.value || null })
+            }
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="paid">Paid</MenuItem>
+            <MenuItem value="unpaid">Unpaid</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
       {hasActiveFilters ? (
@@ -437,6 +483,7 @@ export default function ConsultationsPage() {
                   patientAge: false,
                   patientPhone: false,
                   bookingCode: false,
+                  paymentStatus: false,
                   updatedAt: false,
                 }
               : undefined
@@ -491,6 +538,12 @@ export default function ConsultationsPage() {
             <div>
               <strong>Phone:</strong>{' '}
               {patientField(detailQuery.data?.item ?? ({} as Consultation), 'phone') || '—'}
+            </div>
+            <div>
+              <strong>Payment status:</strong>{' '}
+              {detailQuery.data?.item
+                ? consultationPaymentStatusLabel(detailQuery.data.item)
+                : '—'}
             </div>
             <div>
               <strong>Status:</strong> {consultationStatusLabel(detailQuery.data?.item.state)}

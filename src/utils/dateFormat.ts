@@ -1,4 +1,6 @@
-/** Admin panel — DD/MM/YYYY using UTC (matches API ISO timestamps in devtools). */
+/** Admin panel — dates/times shown in Brasília (America/Sao_Paulo). */
+export const ADMIN_TIMEZONE = 'America/Sao_Paulo'
+
 function parseAdminDate(value: unknown): Date | null {
   if (value == null || value === '') return null
   if (value instanceof Date) {
@@ -18,47 +20,45 @@ function parseAdminDate(value: unknown): Date | null {
   )
   if (brMatch) {
     const [, dd, mm, yyyy, hh, min, sec] = brMatch
+    const isoDay = `${yyyy}-${mm}-${dd}`
     if (!hh) {
-      return new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 12, 0, 0))
+      return new Date(`${isoDay}T12:00:00-03:00`)
     }
-    return new Date(
-      Date.UTC(
-        Number(yyyy),
-        Number(mm) - 1,
-        Number(dd),
-        Number(hh),
-        Number(min),
-        Number(sec ?? '0')
-      )
-    )
+    return new Date(`${isoDay}T${hh}:${min}:${sec ?? '00'}-03:00`)
   }
 
   const d = new Date(raw)
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: ADMIN_TIMEZONE,
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
 
-function formatUtcDateTime(d: Date): string {
-  return `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}, ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`
-}
-
-function formatUtcDate(d: Date): string {
-  return `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`
-}
+const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: ADMIN_TIMEZONE,
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
 
 export function formatDateTime(value: unknown): string {
   const d = parseAdminDate(value)
   if (!d) return value != null && value !== '' ? String(value) : '—'
-  return formatUtcDateTime(d)
+  return dateTimeFormatter.format(d)
 }
 
 export function formatDate(value: unknown): string {
   const d = parseAdminDate(value)
   if (!d) return value != null && value !== '' ? String(value) : '—'
-  return formatUtcDate(d)
+  return dateFormatter.format(d)
 }
 
 /** HTML date input bounds (YYYY-MM-DD). */
@@ -80,12 +80,22 @@ export function isValidDateInputValue(value: string): boolean {
   const day = Number(match[3])
   if (year < 2000 || year > 2099) return false
 
-  const utc = new Date(Date.UTC(year, month - 1, day))
-  return (
-    utc.getUTCFullYear() === year &&
-    utc.getUTCMonth() === month - 1 &&
-    utc.getUTCDate() === day
+  const inst = new Date(
+    `${match[1]}-${match[2]}-${match[3]}T12:00:00-03:00`
   )
+  if (Number.isNaN(inst.getTime())) return false
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ADMIN_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(inst)
+
+  const got = Object.fromEntries(
+    parts.filter((p) => p.type !== 'literal').map((p) => [p.type, Number(p.value)])
+  )
+  return got.year === year && got.month === month && got.day === day
 }
 
 /** Drop invalid manual input; keep empty and in-range YYYY-MM-DD values. */

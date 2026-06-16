@@ -254,6 +254,7 @@ export const medcoinAdminApi = createApi({
         createdFrom?: string
         createdTo?: string
         bookingCode?: string
+        paymentStatus?: 'paid' | 'unpaid'
         search?: string
         q?: string
         activeOnly?: boolean
