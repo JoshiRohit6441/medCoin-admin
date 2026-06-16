@@ -36,14 +36,6 @@ import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageDrawerCl
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const SEVERITIES = ['', 'Low', 'Medium', 'High'] as const
-const STATES = [
-  '',
-  'BOOKED',
-  'DOCTOR_NOTIFIED',
-  'COMPLETED',
-  'PAID',
-  'BOOKING_PENDING',
-] as const
 
 function patientField(row: Consultation, key: 'phone' | 'name'): string {
   const p = row.patient
