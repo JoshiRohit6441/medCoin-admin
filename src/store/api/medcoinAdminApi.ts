@@ -253,6 +253,7 @@ export const medcoinAdminApi = createApi({
         bookingCode?: string
         search?: string
         q?: string
+        activeOnly?: boolean
       } | void
     >({
       query: (params) => {
@@ -261,6 +262,8 @@ export const medcoinAdminApi = createApi({
           (p as Record<string, string>).hasPaymentId = String(p.hasPaymentId)
         if (typeof p.booked === 'boolean')
           (p as Record<string, string>).booked = String(p.booked)
+        if (typeof p.activeOnly === 'boolean')
+          (p as Record<string, string>).activeOnly = String(p.activeOnly)
         return { url: '/consultations', params: p }
       },
       providesTags: (res) =>

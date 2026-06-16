@@ -3,6 +3,7 @@ import { Avatar, Box, CircularProgress, Typography } from '@mui/material'
 import { useRef, useState } from 'react'
 import { resolveProfilePicUrl } from '../../config/api'
 import { useUploadProfileAvatarMutation } from '../../store/api/medcoinAdminApi'
+import { useAppToast } from '../../hooks/useAppToast'
 import { useAppDispatch } from '../../store/hooks'
 import { setUser } from '../../store/slices/authSlice'
 import { getErrorMessage } from '../../utils/errorMessage'
@@ -31,21 +32,20 @@ export default function ProfileAvatarUpload({
   size = 112,
 }: ProfileAvatarUploadProps) {
   const dispatch = useAppDispatch()
+  const { showSuccess, showError, Host: ToastHost } = useAppToast()
   const inputRef = useRef<HTMLInputElement>(null)
   const [localPreview, setLocalPreview] = useState<string | null>(null)
-  const [uploadError, setUploadError] = useState('')
   const [uploadAvatar, { isLoading }] = useUploadProfileAvatarMutation()
 
   const displaySrc = localPreview || resolveProfilePicUrl(profilePic)
 
   async function handleFile(file: File) {
-    setUploadError('')
     if (!file.type.startsWith('image/')) {
-      setUploadError('Please choose an image file.')
+      showError('Please choose an image file.')
       return
     }
     if (file.size > 3 * 1024 * 1024) {
-      setUploadError('Image must be 3 MB or smaller.')
+      showError('Image must be 3 MB or smaller.')
       return
     }
 
@@ -59,14 +59,16 @@ export default function ProfileAvatarUpload({
       onPreviewChange?.(resolveProfilePicUrl(result.user.profilePic) || '')
       setLocalPreview(null)
       URL.revokeObjectURL(preview)
+      showSuccess('Profile photo updated.')
     } catch (err) {
       setLocalPreview(null)
       URL.revokeObjectURL(preview)
-      setUploadError(getErrorMessage(err))
+      showError(getErrorMessage(err))
     }
   }
 
   return (
+    <>
     <Box sx={{ textAlign: 'center' }}>
       <Box
         component="button"
@@ -144,12 +146,8 @@ export default function ProfileAvatarUpload({
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
         Click photo to upload · JPG, PNG or WebP · max 3 MB
       </Typography>
-
-      {uploadError ? (
-        <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
-          {uploadError}
-        </Typography>
-      ) : null}
     </Box>
+    <ToastHost />
+    </>
   )
 }

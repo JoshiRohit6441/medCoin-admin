@@ -12,6 +12,7 @@ import { useState } from 'react'
 import { useGetStaffQuery, useListStaffQuery } from '../../store/api/medcoinAdminApi'
 import type { StaffMember } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { formatDateTime } from '../../utils/dateFormat'
 
 function Toolbar() {
   return (
@@ -32,7 +33,8 @@ const columns: GridColDef<StaffMember>[] = [
     headerName: 'Created',
     minWidth: 170,
     flex: 0.4,
-    valueFormatter: (v) => (v ? String(v) : '—'),
+    type: 'string',
+    renderCell: (params) => formatDateTime(params.value),
   },
 ]
 

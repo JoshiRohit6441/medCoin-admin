@@ -15,6 +15,7 @@ import { DataGrid, GridToolbarContainer, GridToolbarQuickFilter } from '@mui/x-d
 import { useMemo, useState } from 'react'
 import DetailDrawer from '../../components/layout/DetailDrawer'
 import { useIsMobile } from '../../hooks/useBreakpoint'
+import { useAppToast } from '../../hooks/useAppToast'
 import {
   useGetTransactionQuery,
   useGetTransactionStatsQuery,
@@ -23,7 +24,12 @@ import {
   useSyncTransactionPaymentMutation,
 } from '../../store/api/medcoinAdminApi'
 import type { Transaction } from '../../types/admin'
+import {
+  consultationStateChipColor,
+  consultationStateLabel,
+} from '../../utils/consultationState'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { formatDateTime } from '../../utils/dateFormat'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -59,17 +65,15 @@ function paymentChipColor(
   }
 }
 
-function formatDt(v: unknown) {
-  if (!v) return '—'
-  try {
-    return new Date(String(v)).toLocaleString()
-  } catch {
-    return String(v)
-  }
+function patientAge(item: Transaction): string {
+  const p = item.patient
+  if (p && typeof p === 'object' && 'age' in p && p.age != null) return String(p.age)
+  return '—'
 }
 
 export default function TransactionsPage() {
   const isMobile = useIsMobile()
+  const { showSuccess, showError, Host: ToastHost } = useAppToast()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: isMobile ? 10 : 25,
@@ -99,6 +103,24 @@ export default function TransactionsPage() {
   const [mockCompletePayment, mockCompleteState] = useMockCompleteTransactionPaymentMutation()
   const devMode = import.meta.env.DEV
 
+  async function handleSyncPayment(id: string) {
+    try {
+      await syncPayment(id).unwrap()
+      showSuccess('Payment synced from Mercado Pago.')
+    } catch (err) {
+      showError(getErrorMessage(err))
+    }
+  }
+
+  async function handleMockCompletePayment(id: string) {
+    try {
+      await mockCompletePayment(id).unwrap()
+      showSuccess('Payment marked complete. Calendly link sent on WhatsApp.')
+    } catch (err) {
+      showError(getErrorMessage(err))
+    }
+  }
+
   const rows = useMemo(
     () => withSerialNumbers(data?.items ?? [], paginationModel.page, paginationModel.pageSize),
     [data?.items, paginationModel.page, paginationModel.pageSize]
@@ -112,7 +134,8 @@ export default function TransactionsPage() {
         headerName: 'Updated',
         minWidth: 160,
         flex: 0.45,
-        valueFormatter: (v) => formatDt(v),
+        type: 'string',
+        renderCell: (params) => formatDateTime(params.value),
       },
       {
         field: 'paymentStatusLabel',
@@ -317,13 +340,29 @@ export default function TransactionsPage() {
                 sx={{ alignSelf: 'flex-start' }}
               />
               <div>
-                <strong>Session:</strong> {item.state}
+                <strong>Session:</strong>{' '}
+                <Chip
+                  size="small"
+                  label={consultationStateLabel(item.state)}
+                  color={consultationStateChipColor(item.state)}
+                  variant="outlined"
+                  sx={{ ml: 0.5, verticalAlign: 'middle' }}
+                />
+              </div>
+              <div>
+                <strong>Session ID:</strong> {item.sessionId || item._id}
               </div>
               <div>
                 <strong>Name:</strong> {patientField(item, 'name') || '—'}
               </div>
               <div>
                 <strong>Phone:</strong> {patientField(item, 'phone') || '—'}
+              </div>
+              <div>
+                <strong>Age:</strong> {patientAge(item)}
+              </div>
+              <div>
+                <strong>Severity:</strong> {item.severity || '—'}
               </div>
               <div>
                 <strong>Amount:</strong> {item.amountLabel ?? '—'}
@@ -347,7 +386,16 @@ export default function TransactionsPage() {
                 <strong>Booking code:</strong> {item.bookingCode || '—'}
               </div>
               <div>
-                <strong>Appointment:</strong> {formatDt(item.appointmentStartAt)}
+                <strong>Appointment:</strong> {formatDateTime(item.appointmentStartAt)}
+                {item.appointmentEndAt
+                  ? ` – ${formatDateTime(item.appointmentEndAt)}`
+                  : ''}
+              </div>
+              <div>
+                <strong>Calendly invitee:</strong>{' '}
+                {item.calendlyInviteeName || item.calendlyInviteeEmail
+                  ? `${item.calendlyInviteeName || '—'}${item.calendlyInviteeEmail ? ` (${item.calendlyInviteeEmail})` : ''}`
+                  : '—'}
               </div>
               <div>
                 <strong>Meet link:</strong>{' '}
@@ -370,6 +418,21 @@ export default function TransactionsPage() {
                 )}
               </div>
               <div>
+                <strong>Consultancy suggestion:</strong>
+                <Box sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                  {item.suggestedConsultancyText || '—'}
+                </Box>
+              </div>
+              <div>
+                <strong>Created:</strong> {formatDateTime(item.createdAt)}
+              </div>
+              <div>
+                <strong>Updated:</strong> {formatDateTime(item.updatedAt)}
+              </div>
+              <div>
+                <strong>Last activity:</strong> {formatDateTime(item.lastActivityAt)}
+              </div>
+              <div>
                 <strong>AI summary:</strong>
                 <Box sx={{ mt: 0.5, whiteSpace: 'pre-wrap', maxHeight: 120, overflow: 'auto' }}>
                   {item.aiSummary || '—'}
@@ -381,7 +444,7 @@ export default function TransactionsPage() {
                   variant="contained"
                   disabled={syncState.isLoading}
                   onClick={() => {
-                    if (selectedId) void syncPayment(selectedId)
+                    if (selectedId) void handleSyncPayment(selectedId)
                   }}
                 >
                   Sync payment from Mercado Pago
@@ -399,7 +462,7 @@ export default function TransactionsPage() {
                     color="warning"
                     disabled={mockCompleteState.isLoading}
                     onClick={() => {
-                      if (selectedId) void mockCompletePayment(selectedId)
+                      if (selectedId) void handleMockCompletePayment(selectedId)
                     }}
                   >
                     {mockCompleteState.isLoading
@@ -408,20 +471,13 @@ export default function TransactionsPage() {
                   </Button>
                 </>
               ) : null}
-              {mockCompleteState.isError ? (
-                <Alert severity="error">{getErrorMessage(mockCompleteState.error)}</Alert>
-              ) : null}
-              {mockCompleteState.isSuccess ? (
-                <Alert severity="success">
-                  Payment marked complete. Calendly link sent on WhatsApp.
-                </Alert>
-              ) : null}
             </Stack>
           ) : null}
           <Button sx={{ mt: 2 }} onClick={() => setSelectedId(null)} fullWidth variant="outlined">
             Close
           </Button>
       </DetailDrawer>
+      <ToastHost />
     </Stack>
   )
 }

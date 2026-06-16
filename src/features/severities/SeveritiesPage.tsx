@@ -17,6 +17,7 @@ import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data
 import { DataGrid } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
 import { useIsMobile } from '../../hooks/useBreakpoint'
+import { useAppToast } from '../../hooks/useAppToast'
 import {
   useCreateSeverityMutation,
   useDeleteSeverityMutation,
@@ -48,6 +49,7 @@ const emptyForm: FormState = {
 
 export default function SeveritiesPage() {
   const isMobile = useIsMobile()
+  const { showSuccess, showError, Host: ToastHost } = useAppToast()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 25,
@@ -78,6 +80,16 @@ export default function SeveritiesPage() {
     [data?.items, paginationModel.page, paginationModel.pageSize]
   )
 
+  const usedAiKeys = useMemo(
+    () => new Set((data?.items ?? []).map((row) => row.aiSeverityKey)),
+    [data?.items]
+  )
+
+  const availableAiKeysForCreate = useMemo(
+    () => AI_KEYS.filter((key) => !usedAiKeys.has(key)),
+    [usedAiKeys]
+  )
+
   const columns: GridColDef<SeverityLevel>[] = useMemo(
     () => [
       serialColumn(),
@@ -96,7 +108,7 @@ export default function SeveritiesPage() {
       },
       {
         field: 'actions',
-        headerName: '',
+        headerName: 'Action',
         width: 160,
         sortable: false,
         filterable: false,
@@ -120,7 +132,7 @@ export default function SeveritiesPage() {
             >
               Edit
             </Button>
-            <Button
+            {/* <Button
               size="small"
               color="error"
               onClick={(e) => {
@@ -129,7 +141,7 @@ export default function SeveritiesPage() {
               }}
             >
               Delete
-            </Button>
+            </Button> */}
           </Stack>
         ),
       },
@@ -137,37 +149,35 @@ export default function SeveritiesPage() {
     [],
   )
 
-  function openCreate() {
-    setEditingId(null)
-    setForm(emptyForm)
-    setDialogOpen(true)
-  }
-
   async function submitForm() {
+    if (!form.name.trim() || !form.consultancySuggestion.trim()) return
     try {
       if (editingId) {
         await updateSeverity({
           id: editingId,
           body: {
-            name: form.name,
-            aiSeverityKey: form.aiSeverityKey,
-            consultancySuggestion: form.consultancySuggestion,
-            description: form.description,
+            name: form.name.trim(),
+            consultancySuggestion: form.consultancySuggestion.trim(),
+            description: form.description.trim(),
             isActive: form.isActive,
           },
         }).unwrap()
+        showSuccess('Severity level updated successfully.')
       } else {
+        if (!availableAiKeysForCreate.includes(form.aiSeverityKey)) return
         await createSeverity({
-          name: form.name,
+          name: form.name.trim(),
           aiSeverityKey: form.aiSeverityKey,
-          consultancySuggestion: form.consultancySuggestion,
-          description: form.description,
+          consultancySuggestion: form.consultancySuggestion.trim(),
+          description: form.description.trim(),
           isActive: form.isActive,
         }).unwrap()
+        showSuccess('Severity level created successfully.')
       }
       setDialogOpen(false)
-    } catch {
-      /* error surfaced */
+      void refetch()
+    } catch (err) {
+      showError(getErrorMessage(err))
     }
   }
 
@@ -195,10 +205,21 @@ export default function SeveritiesPage() {
         >
           Refresh
         </Button>
-        <Button size="small" variant="contained" onClick={openCreate}>
+        {/* <Button
+          size="small"
+          variant="contained"
+          onClick={openCreate}
+          disabled={!availableAiKeysForCreate.length}
+        >
           Add level
-        </Button>
+        </Button> */}
       </Box>
+      {!availableAiKeysForCreate.length && (data?.items?.length ?? 0) >= AI_KEYS.length ? (
+        <Alert severity="info">
+          Low, Medium, and High levels already exist. Edit an existing row instead of adding a
+          duplicate AI key.
+        </Alert>
+      ) : null}
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
@@ -230,11 +251,6 @@ export default function SeveritiesPage() {
       >
         <DialogTitle>{editingId ? 'Edit severity' : 'New severity'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          {(createState.error || updateState.error) && (
-            <Alert severity="error">
-              {getErrorMessage(createState.error ?? updateState.error)}
-            </Alert>
-          )}
           <TextField
             label="Name"
             value={form.name}
@@ -255,8 +271,14 @@ export default function SeveritiesPage() {
             }
             fullWidth
             size="small"
+            disabled={Boolean(editingId)}
+            helperText={
+              editingId
+                ? 'AI key cannot be changed after creation (one level per Low/Medium/High).'
+                : 'Choose an unused AI severity key.'
+            }
           >
-            {AI_KEYS.map((k) => (
+            {(editingId ? AI_KEYS : availableAiKeysForCreate).map((k) => (
               <MenuItem key={k} value={k}>
                 {k}
               </MenuItem>
@@ -321,6 +343,8 @@ export default function SeveritiesPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ToastHost />
     </Stack>
   )
 }

@@ -34,6 +34,7 @@ import { Link } from 'react-router-dom'
 import { useGetOverviewQuery } from '../../store/api/medcoinAdminApi'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { AUTH_NAVY } from '../../components/auth/authTheme'
+import { ACTIVE_SESSION_STATES } from '../../utils/consultationState'
 
 const NAVY = AUTH_NAVY
 const CHART_COLORS = ['#0f2744', '#1a3a5c', '#2563eb', '#059669', '#ea580c', '#dc2626', '#94a3b8']
@@ -75,12 +76,11 @@ function KpiCard({ title, value, subtitle, icon, accent, to }: KpiCardProps) {
       sx={{
         height: '100%',
         borderRadius: 2,
-        borderColor: 'divider',
         transition: 'box-shadow 0.2s, transform 0.2s',
         ...(to
           ? {
               cursor: 'pointer',
-              '&:hover': { boxShadow: 2, transform: 'translateY(-2px)' },
+              '&:hover': { boxShadow: 3, transform: 'translateY(-2px)' },
             }
           : {}),
       }}
@@ -206,7 +206,7 @@ export default function DashboardPage() {
           value={c?.consultations ?? 0}
           subtitle={`${c?.consultationsToday ?? 0} today · ${c?.consultationsThisWeek ?? 0} this week`}
           icon={<LocalHospitalOutlinedIcon />}
-          accent={NAVY}
+          accent="#2563eb"
           to="/consultations"
         />
         <KpiCard
@@ -214,8 +214,8 @@ export default function DashboardPage() {
           value={c?.activeSessions ?? 0}
           subtitle={`${c?.paymentPending ?? 0} awaiting payment`}
           icon={<PendingActionsOutlinedIcon />}
-          accent="#ea580c"
-          to="/consultations"
+          accent="#2563eb"
+          to={`/consultations?state=${encodeURIComponent(ACTIVE_SESSION_STATES)}`}
         />
         <KpiCard
           title="Completed flow"
@@ -223,6 +223,7 @@ export default function DashboardPage() {
           subtitle={`${completionRate}% reached booking+`}
           icon={<CheckCircleOutlinedIcon />}
           accent="#059669"
+          to="/consultations?state=BOOKED,DOCTOR_NOTIFIED,COMPLETED"
         />
         <KpiCard
           title="Upcoming doctor meetings"
@@ -267,6 +268,7 @@ export default function DashboardPage() {
           subtitle="Sessions timed out"
           icon={<CalendarTodayOutlinedIcon />}
           accent="#94a3b8"
+          to="/consultations?state=EXPIRED"
         />
       </Box>
 
@@ -301,8 +303,11 @@ export default function DashboardPage() {
 
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NAVY, mb: 0.5 }}>
               By triage severity
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Completed consultancies or sessions with severity assigned
             </Typography>
             <Box sx={{ width: '100%', height: { xs: 220, sm: 280 } }}>
               {severityData.length === 0 ? (

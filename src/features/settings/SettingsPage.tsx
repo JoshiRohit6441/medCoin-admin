@@ -15,12 +15,14 @@ import {
   DialogContentText,
   DialogTitle,
   Divider,
+  InputAdornment,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useIsMobile } from '../../hooks/useBreakpoint'
+import { useAppToast } from '../../hooks/useAppToast'
 import {
   useDisconnectZapiMutation,
   useGetSettingsQuery,
@@ -45,6 +47,15 @@ function normalizeDoctorPhonesInput(raw: string) {
 
 export default function SettingsPage() {
   const isMobile = useIsMobile()
+  const { showSuccess, showError, Host: ToastHost } = useAppToast()
+  const [qrPolling, setQrPolling] = useState(false)
+  const [isZapiConnected, setIsZapiConnected] = useState<boolean | null>(null)
+  const [doctorPhone, setDoctorPhone] = useState('')
+  const [priceAmount, setPriceAmount] = useState('')
+  const [sessionExpiryHours, setSessionExpiryHours] = useState('6')
+  const [sessionExpiryWarnHours, setSessionExpiryWarnHours] = useState('1')
+  const [qrImage, setQrImage] = useState<string | null>(null)
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
   const { data: settingsData, isLoading: settingsLoading } = useGetSettingsQuery()
   const [updateSettings, updateState] = useUpdateSettingsMutation()
 
@@ -53,20 +64,15 @@ export default function SettingsPage() {
     isLoading: zapiLoading,
     refetch: refetchZapi,
   } = useGetZapiConnectionQuery(undefined, {
-    pollingInterval: 8000,
+    pollingInterval: qrPolling && isZapiConnected === false ? 15000 : 0,
+    refetchOnFocus: false,
+    refetchOnReconnect: false,
   })
+
+  const zapiPairingActive = qrPolling && isZapiConnected === false
 
   const [disconnectZapi, disconnectState] = useDisconnectZapiMutation()
   const [fetchQr, qrState] = useLazyGetZapiQrCodeQuery()
-
-  const [doctorPhone, setDoctorPhone] = useState('')
-  const [priceAmount, setPriceAmount] = useState('')
-  const [sessionExpiryHours, setSessionExpiryHours] = useState('6')
-  const [sessionExpiryWarnHours, setSessionExpiryWarnHours] = useState('1')
-  const [qrImage, setQrImage] = useState<string | null>(null)
-  const [qrPolling, setQrPolling] = useState(false)
-  const [savedOk, setSavedOk] = useState(false)
-  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
 
   const settings = settingsData?.settings
 
@@ -79,18 +85,22 @@ export default function SettingsPage() {
   }, [settings])
 
   useEffect(() => {
-    if (!qrPolling || zapi?.connected) return
+    if (!zapiPairingActive) return
     const id = window.setInterval(() => {
       void loadQr()
-      void refetchZapi()
     }, 15000)
     return () => window.clearInterval(id)
-  }, [qrPolling, zapi?.connected])
+  }, [zapiPairingActive])
 
   useEffect(() => {
-    if (zapi?.connected) {
+    if (zapi?.connected === true) {
+      setIsZapiConnected(true)
       setQrPolling(false)
       setQrImage(null)
+      return
+    }
+    if (zapi?.connected === false) {
+      setIsZapiConnected(false)
     }
   }, [zapi?.connected])
 
@@ -99,6 +109,8 @@ export default function SettingsPage() {
       const result = await fetchQr().unwrap()
       if (result.connected) {
         setQrImage(null)
+        setQrPolling(false)
+        void refetchZapi()
         return
       }
       if (result.qrImage) setQrImage(result.qrImage)
@@ -107,25 +119,35 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleSaveOperational(e: React.FormEvent) {
+  async function handleSaveConsultation(e: React.FormEvent) {
     e.preventDefault()
-    setSavedOk(false)
     const amount = Number(priceAmount)
-    const expiryH = Number(sessionExpiryHours)
-    const warnH = Number(sessionExpiryWarnHours)
     if (!Number.isFinite(amount) || amount <= 0) return
-    if (!Number.isFinite(expiryH) || expiryH < 1) return
-    if (!Number.isFinite(warnH) || warnH < 0.25) return
     try {
       await updateSettings({
         doctorWhatsappPhone: normalizeDoctorPhonesInput(doctorPhone),
         consultationPriceAmount: amount,
+      }).unwrap()
+      showSuccess('Consultation settings saved.')
+    } catch (err) {
+      showError(getErrorMessage(err))
+    }
+  }
+
+  async function handleSaveSessionTiming(e: React.FormEvent) {
+    e.preventDefault()
+    const expiryH = Number(sessionExpiryHours)
+    const warnH = Number(sessionExpiryWarnHours)
+    if (!Number.isFinite(expiryH) || expiryH < 1) return
+    if (!Number.isFinite(warnH) || warnH < 0.25) return
+    try {
+      await updateSettings({
         sessionExpiryHours: expiryH,
         sessionExpiryWarnHours: warnH,
       }).unwrap()
-      setSavedOk(true)
-    } catch {
-      /* error via updateState */
+      showSuccess('Session timing saved.')
+    } catch (err) {
+      showError(getErrorMessage(err))
     }
   }
 
@@ -134,13 +156,15 @@ export default function SettingsPage() {
       await disconnectZapi().unwrap()
       setQrImage(null)
       setDisconnectDialogOpen(false)
+      showSuccess('WhatsApp disconnected.')
       await refetchZapi()
-    } catch {
-      /* error shown via disconnectState */
+    } catch (err) {
+      showError(getErrorMessage(err))
     }
   }
 
   async function handleStartPairing() {
+    if (isZapiConnected) return
     setQrPolling(true)
     await loadQr()
   }
@@ -157,11 +181,6 @@ export default function SettingsPage() {
         </Typography>
       </Box>
 
-      {updateState.isError ? (
-        <Alert severity="error">{getErrorMessage(updateState.error)}</Alert>
-      ) : null}
-      {savedOk ? <Alert severity="success">Settings saved.</Alert> : null}
-
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
@@ -170,16 +189,27 @@ export default function SettingsPage() {
           {settingsLoading ? (
             <CircularProgress size={24} />
           ) : (
-            <Box component="form" onSubmit={(e) => void handleSaveOperational(e)}>
+            <Box component="form" onSubmit={(e) => void handleSaveConsultation(e)}>
               <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 480 } }}>
                 <TextField
                   label="Doctor WhatsApp"
                   value={doctorPhone}
                   onChange={(e) => setDoctorPhone(e.target.value.replace(/[^\d,;\s]/g, ''))}
-                  helperText="Comma-separated numbers with country code, digits only (e.g. 5511999999999,917417435057). Booking alerts go to all."
+                  helperText="Comma-separated numbers with country code (e.g. 5511999999999,917417435057). Booking alerts go to all."
                   fullWidth
                   size="small"
                   placeholder="5511999999999,917417435057"
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            +
+                          </Typography>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
                 />
 
                 <TextField
@@ -215,7 +245,7 @@ export default function SettingsPage() {
           {settingsLoading ? (
             <CircularProgress size={24} />
           ) : (
-            <Box component="form" onSubmit={(e) => void handleSaveOperational(e)}>
+            <Box component="form" onSubmit={(e) => void handleSaveSessionTiming(e)}>
               <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 720 } }}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <TextField
@@ -460,6 +490,8 @@ export default function SettingsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ToastHost />
     </Stack>
   )
 }

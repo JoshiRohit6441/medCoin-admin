@@ -11,7 +11,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Snackbar,
   Stack,
   TextField,
   Tooltip,
@@ -22,15 +21,19 @@ import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import DateFilterField from '../../components/forms/DateFilterField'
 import { useIsMobile } from '../../hooks/useBreakpoint'
+import { useAppToast } from '../../hooks/useAppToast'
 import {
   useGetConsultationQuery,
   useGetMeetingsSummaryQuery,
   useListMeetingsQuery,
 } from '../../store/api/medcoinAdminApi'
 import type { Consultation, DoctorMeeting } from '../../types/admin'
+import { formatPatientAge } from '../../utils/patientDisplay'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { isValidDateInputValue } from '../../utils/dateFormat'
 import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const SEVERITIES = ['', 'Low', 'Medium', 'High'] as const
@@ -54,8 +57,8 @@ function patientField(row: Consultation, key: 'phone' | 'name'): string {
 
 function patientAgeLabel(row: Consultation): string {
   const p = row.patient
-  if (p && typeof p === 'object' && 'age' in p && (p as { age?: number }).age != null) {
-    return String((p as { age: number }).age)
+  if (p && typeof p === 'object' && 'age' in p) {
+    return formatPatientAge((p as { age?: number }).age)
   }
   return '—'
 }
@@ -114,6 +117,7 @@ function MeetLinkActions({
 
 export default function MeetingsPage() {
   const isMobile = useIsMobile()
+  const { showSuccess, Host: ToastHost } = useAppToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialTiming = searchParams.get('timing') === 'past' ? 'past' : searchParams.get('timing') === 'upcoming' ? 'upcoming' : 'all'
 
@@ -133,11 +137,10 @@ export default function MeetingsPage() {
   const [appointmentTo, setAppointmentTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedSerial, setSelectedSerial] = useState<number | null>(null)
-  const [copySnackOpen, setCopySnackOpen] = useState(false)
 
   const notifyLinkCopied = useCallback(() => {
-    setCopySnackOpen(true)
-  }, [])
+    showSuccess('Meeting link copied to clipboard')
+  }, [showSuccess])
 
   async function copyMeetingLink(url: string) {
     try {
@@ -160,8 +163,8 @@ export default function MeetingsPage() {
     state: state || undefined,
     search: patientSearch.trim() || undefined,
     bookingCode: bookingCode.trim() || undefined,
-    appointmentFrom: appointmentFrom || undefined,
-    appointmentTo: appointmentTo || undefined,
+    appointmentFrom: isValidDateInputValue(appointmentFrom) && appointmentFrom ? appointmentFrom : undefined,
+    appointmentTo: isValidDateInputValue(appointmentTo) && appointmentTo ? appointmentTo : undefined,
   })
 
   const detailQuery = useGetConsultationQuery(selectedId ?? '', { skip: !selectedId })
@@ -206,7 +209,8 @@ export default function MeetingsPage() {
         headerName: 'Appointment',
         minWidth: 168,
         flex: 0.45,
-        valueFormatter: (v) => formatDateTime(v),
+        type: 'string',
+        renderCell: (params) => formatDateTime(params.value),
       },
       {
         field: 'state',
@@ -299,9 +303,20 @@ export default function MeetingsPage() {
           fullWidth
         />
         <FormControl size="small" fullWidth>
-          <InputLabel>Timing</InputLabel>
-          <Select label="Timing" value={timing} onChange={(e) => applyTimingFilter(e.target.value as typeof timing)}>
-            <MenuItem value="all">All</MenuItem>
+          <InputLabel id="meetings-timing-label">Timings</InputLabel>
+          <Select
+            labelId="meetings-timing-label"
+            label="Timings"
+            value={timing}
+            displayEmpty
+            renderValue={(selected) => {
+              if (selected === 'upcoming') return 'Upcoming'
+              if (selected === 'past') return 'Completed (past)'
+              return 'All timings'
+            }}
+            onChange={(e) => applyTimingFilter(e.target.value as typeof timing)}
+          >
+            <MenuItem value="all">All timings</MenuItem>
             <MenuItem value="upcoming">Upcoming</MenuItem>
             <MenuItem value="past">Completed (past)</MenuItem>
           </Select>
@@ -342,28 +357,24 @@ export default function MeetingsPage() {
             ))}
           </Select>
         </FormControl>
-        <TextField
+        <DateFilterField
           size="small"
           label="From date"
-          type="date"
           value={appointmentFrom}
-          onChange={(e) => {
-            setAppointmentFrom(e.target.value)
+          onValueChange={(value) => {
+            setAppointmentFrom(value)
             setPaginationModel((p) => ({ ...p, page: 0 }))
           }}
-          slotProps={{ inputLabel: { shrink: true } }}
           fullWidth
         />
-        <TextField
+        <DateFilterField
           size="small"
           label="To date"
-          type="date"
           value={appointmentTo}
-          onChange={(e) => {
-            setAppointmentTo(e.target.value)
+          onValueChange={(value) => {
+            setAppointmentTo(value)
             setPaginationModel((p) => ({ ...p, page: 0 }))
           }}
-          slotProps={{ inputLabel: { shrink: true } }}
           fullWidth
         />
         <TextField
@@ -510,13 +521,7 @@ export default function MeetingsPage() {
           </Button>
       </DetailDrawer>
 
-      <Snackbar
-        open={copySnackOpen}
-        autoHideDuration={2500}
-        onClose={() => setCopySnackOpen(false)}
-        message="Meeting link copied to clipboard"
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
+      <ToastHost />
     </Stack>
   )
 }

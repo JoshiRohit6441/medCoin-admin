@@ -2,7 +2,6 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined'
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -15,6 +14,7 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useGetMeQuery, useUpdateProfileMutation } from '../../store/api/medcoinAdminApi'
+import { useAppToast } from '../../hooks/useAppToast'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { setUser } from '../../store/slices/authSlice'
 import { getErrorMessage } from '../../utils/errorMessage'
@@ -23,6 +23,7 @@ import { AUTH_NAVY, authFieldSx, authPrimaryButtonSx } from '../../components/au
 
 export default function MyProfilePage() {
   const dispatch = useAppDispatch()
+  const { showSuccess, showError, Host: ToastHost } = useAppToast()
   const cachedUser = useAppSelector((s) => s.auth.user)
   const { data, isLoading: loadingMe } = useGetMeQuery()
   const user = data?.user ?? cachedUser
@@ -30,9 +31,8 @@ export default function MyProfilePage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [saved, setSaved] = useState(false)
 
-  const [updateProfile, { isLoading, error }] = useUpdateProfileMutation()
+  const [updateProfile, { isLoading }] = useUpdateProfileMutation()
 
   useEffect(() => {
     if (!user) return
@@ -43,13 +43,12 @@ export default function MyProfilePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSaved(false)
     try {
       const result = await updateProfile({ name, email, phone }).unwrap()
       dispatch(setUser(result.user))
-      setSaved(true)
-    } catch {
-      /* surfaced */
+      showSuccess('Profile details saved.')
+    } catch (err) {
+      showError(getErrorMessage(err))
     }
   }
 
@@ -109,13 +108,6 @@ export default function MyProfilePage() {
         </Box>
 
         <Box sx={{ p: { xs: 2.5, sm: 4 } }}>
-          {error ? <Alert severity="error" sx={{ mb: 2 }}>{getErrorMessage(error)}</Alert> : null}
-          {saved ? (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              Profile details saved.
-            </Alert>
-          ) : null}
-
           <Stack component="form" onSubmit={handleSubmit} spacing={3}>
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: AUTH_NAVY }}>
@@ -125,10 +117,7 @@ export default function MyProfilePage() {
                 <TextField
                   label="Full name"
                   value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    setSaved(false)
-                  }}
+                  onChange={(e) => setName(e.target.value)}
                   fullWidth
                   size="small"
                   slotProps={{
@@ -146,10 +135,7 @@ export default function MyProfilePage() {
                   label="Email"
                   type="email"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    setSaved(false)
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   fullWidth
                   size="small"
@@ -167,10 +153,7 @@ export default function MyProfilePage() {
                 <TextField
                   label="Phone"
                   value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value)
-                    setSaved(false)
-                  }}
+                  onChange={(e) => setPhone(e.target.value)}
                   fullWidth
                   size="small"
                   placeholder="+55 11 99999-9999"
@@ -203,6 +186,7 @@ export default function MyProfilePage() {
           </Stack>
         </Box>
       </Card>
+      <ToastHost />
     </Box>
   )
 }

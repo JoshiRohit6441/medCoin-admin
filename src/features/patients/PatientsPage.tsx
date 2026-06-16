@@ -14,12 +14,20 @@ import { useGetPatientQuery, useListPatientsQuery } from '../../store/api/medcoi
 import type { Patient } from '../../types/admin'
 import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
-import { formatDateTime, serialColumn, withSerialNumbers } from '../../utils/gridSerial'
+import { formatPatientAge, formatPatientAgeWithUnit } from '../../utils/patientDisplay'
+import { formatDateTime, serialColumn, withSerialNumbers, dateTimeColumn } from '../../utils/gridSerial'
 
 function Toolbar() {
   return (
     <GridToolbarContainer sx={{ gap: 1, px: 1, py: 1 }}>
-      <GridToolbarQuickFilter debounceMs={400} />
+      <GridToolbarQuickFilter
+        debounceMs={400}
+        slotProps={{
+          root: {
+            placeholder: 'Search by name or phone number',
+          },
+        }}
+      />
     </GridToolbarContainer>
   )
 }
@@ -40,15 +48,10 @@ const columns: GridColDef<Patient & { __serial?: number }>[] = [
     width: 72,
     align: 'center',
     headerAlign: 'center',
-    valueFormatter: (v) => (v != null && v !== '' ? String(v) : '—'),
+    type: 'string',
+    renderCell: (params) => formatPatientAge(params.value),
   },
-  {
-    field: 'createdAt',
-    headerName: 'Created',
-    minWidth: 180,
-    flex: 0.5,
-    valueFormatter: (v) => formatDateTime(v),
-  },
+  dateTimeColumn('createdAt', 'Created'),
 ]
 
 export default function PatientsPage() {
@@ -159,8 +162,7 @@ export default function PatientsPage() {
                 <strong>Name:</strong> {detailQuery.data?.item.name || '—'}
               </Typography>
               <Typography variant="body2">
-                <strong>Age:</strong>{' '}
-                {detailQuery.data?.item.age != null ? `${detailQuery.data.item.age} years` : '—'}
+                <strong>Age:</strong> {formatPatientAgeWithUnit(detailQuery.data?.item.age)}
               </Typography>
               <Typography variant="body2">
                 <strong>Created:</strong> {formatDateTime(detailQuery.data?.item.createdAt)}

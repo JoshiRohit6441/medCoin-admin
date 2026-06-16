@@ -114,9 +114,9 @@ export function AuthPasswordField({
                   size="small"
                 >
                   {showPassword ? (
-                    <VisibilityOffOutlinedIcon fontSize="small" />
-                  ) : (
                     <VisibilityOutlinedIcon fontSize="small" />
+                  ) : (
+                    <VisibilityOffOutlinedIcon fontSize="small" />
                   )}
                 </IconButton>
               </InputAdornment>

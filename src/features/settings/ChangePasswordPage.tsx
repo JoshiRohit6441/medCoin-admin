@@ -1,5 +1,4 @@
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -9,33 +8,31 @@ import {
 } from '@mui/material'
 import { useState } from 'react'
 import { useChangePasswordMutation } from '../../store/api/medcoinAdminApi'
+import { useAppToast } from '../../hooks/useAppToast'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { AuthPasswordField } from '../../components/auth/AuthFields'
 import { AUTH_NAVY, authPrimaryButtonSx } from '../../components/auth/authTheme'
 
 export default function ChangePasswordPage() {
+  const { showSuccess, showError, Host: ToastHost } = useAppToast()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [changePassword, { isLoading, error }] = useChangePasswordMutation()
-  const [passwordOk, setPasswordOk] = useState(false)
-  const [clientError, setClientError] = useState('')
+  const [changePassword, { isLoading }] = useChangePasswordMutation()
 
   const mismatch = confirmPassword.length > 0 && newPassword !== confirmPassword
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setPasswordOk(false)
-    setClientError('')
     if (newPassword.length < 8) {
-      setClientError('Password must be at least 8 characters.')
+      showError('Password must be at least 8 characters.')
       return
     }
     if (newPassword !== confirmPassword) {
-      setClientError('Passwords do not match.')
+      showError('Passwords do not match.')
       return
     }
     try {
@@ -43,9 +40,9 @@ export default function ChangePasswordPage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      setPasswordOk(true)
-    } catch {
-      /* surfaced */
+      showSuccess('Password updated successfully.')
+    } catch (err) {
+      showError(getErrorMessage(err))
     }
   }
 
@@ -60,14 +57,6 @@ export default function ChangePasswordPage() {
 
       <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent>
-          {error ? <Alert severity="error" sx={{ mb: 2 }}>{getErrorMessage(error)}</Alert> : null}
-          {clientError ? <Alert severity="error" sx={{ mb: 2 }}>{clientError}</Alert> : null}
-          {passwordOk ? (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              Password updated successfully.
-            </Alert>
-          ) : null}
-
           <Stack component="form" onSubmit={handleSubmit} spacing={2.5}>
             <AuthPasswordField
               label="Current password"
@@ -80,10 +69,7 @@ export default function ChangePasswordPage() {
             <AuthPasswordField
               label="New password"
               value={newPassword}
-              onChange={(v) => {
-                setNewPassword(v)
-                setPasswordOk(false)
-              }}
+              onChange={(v) => setNewPassword(v)}
               showPassword={showNew}
               onToggleShow={() => setShowNew((v) => !v)}
               autoComplete="new-password"
@@ -92,10 +78,7 @@ export default function ChangePasswordPage() {
             <AuthPasswordField
               label="Confirm new password"
               value={confirmPassword}
-              onChange={(v) => {
-                setConfirmPassword(v)
-                setPasswordOk(false)
-              }}
+              onChange={(v) => setConfirmPassword(v)}
               showPassword={showConfirm}
               onToggleShow={() => setShowConfirm((v) => !v)}
               autoComplete="new-password"
@@ -114,6 +97,7 @@ export default function ChangePasswordPage() {
           </Stack>
         </CardContent>
       </Card>
+      <ToastHost />
     </Stack>
   )
 }

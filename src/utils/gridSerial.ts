@@ -1,6 +1,26 @@
 import type { GridColDef, GridValidRowModel } from '@mui/x-data-grid'
+import { formatDateTime } from './dateFormat'
+
+export { formatDateTime }
 
 export const SERIAL_FIELD = '__serial'
+
+export function dateTimeColumn<T extends GridValidRowModel = GridValidRowModel>(
+  field: string,
+  headerName: string,
+  overrides: Partial<GridColDef<T>> = {}
+): GridColDef<T> {
+  return {
+    field,
+    headerName,
+    type: 'string',
+    minWidth: 180,
+    flex: 0.5,
+    sortable: true,
+    renderCell: (params) => formatDateTime(params.value),
+    ...overrides,
+  }
+}
 
 export function serialColumn<T extends GridValidRowModel = GridValidRowModel>(): GridColDef<T> {
   return {
@@ -25,13 +45,4 @@ export function withSerialNumbers<T extends object>(
     ...item,
     [SERIAL_FIELD]: base + index + 1,
   }))
-}
-
-export function formatDateTime(value: unknown): string {
-  if (!value) return '—'
-  try {
-    return new Date(String(value)).toLocaleString()
-  } catch {
-    return String(value)
-  }
 }
