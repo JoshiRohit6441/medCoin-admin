@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const [sessionExpiryWarnHours, setSessionExpiryWarnHours] = useState('1')
   const [qrImage, setQrImage] = useState<string | null>(null)
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
-  const { data: settingsData, isLoading: settingsLoading } = useGetSettingsQuery()
+  const { data: settingsData, isLoading: settingsLoading, refetch: refetchSettings } = useGetSettingsQuery()
   const [updateSettings, updateState] = useUpdateSettingsMutation()
 
   const {
@@ -100,12 +100,13 @@ export default function SettingsPage() {
       setIsZapiConnected(true)
       setQrPolling(false)
       setQrImage(null)
+      void refetchSettings()
       return
     }
     if (zapi?.connected === false) {
       setIsZapiConnected(false)
     }
-  }, [zapi?.connected])
+  }, [zapi?.connected, zapi?.savedBusinessPhone, refetchSettings])
 
   async function loadQr() {
     try {
@@ -114,6 +115,7 @@ export default function SettingsPage() {
         setQrImage(null)
         setQrPolling(false)
         void refetchZapi()
+        void refetchSettings()
         return
       }
       if (result.qrImage) setQrImage(result.qrImage)
@@ -455,6 +457,12 @@ export default function SettingsPage() {
                         (via Z-API {zapi.enrolledPhoneSource})
                       </Typography>
                     ) : null}
+                  </div>
+                  <div>
+                    <strong>Saved for redirects (DB):</strong>{' '}
+                    {settings?.whatsappBusinessPhone || zapi.savedBusinessPhone
+                      ? formatPhoneDisplay(settings?.whatsappBusinessPhone || zapi.savedBusinessPhone || '')
+                      : '—'}
                   </div>
                   {zapi.deviceName ? (
                     <div>

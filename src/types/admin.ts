@@ -39,6 +39,7 @@ export type LoginResponse = {
 
 export type AppSettings = {
   doctorWhatsappPhone: string
+  whatsappBusinessPhone?: string
   consultationPriceAmount: number
   consultationPriceCurrency: string
   sessionExpiryHours: number
@@ -54,6 +55,7 @@ export type ZapiConnection = {
   connected?: boolean
   smartphoneConnected?: boolean
   enrolledPhone?: string | null
+  savedBusinessPhone?: string | null
   enrolledPhoneSource?: string | null
   deviceName?: string | null
   deviceAbout?: string | null
