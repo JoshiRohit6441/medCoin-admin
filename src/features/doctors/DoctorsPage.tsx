@@ -30,7 +30,6 @@ import {
   useUploadDoctorAvatarMutation,
 } from '../../store/api/medcoinAdminApi'
 import type { Doctor } from '../../types/admin'
-import { buildDateRangeParams } from '../../utils/dateFormat'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults } from '../../utils/pageButtons'
@@ -84,8 +83,6 @@ export default function DoctorsPage() {
   })
   const [sortModel, setSortModel] = useState<GridSortModel>([{ field: 'name', sort: 'asc' }])
   const [quickFilter, setQuickFilter] = useState('')
-  const [createdFrom, setCreatedFrom] = useState('')
-  const [createdTo, setCreatedTo] = useState('')
 
   const sort = sortModel[0]
   const { data, isError, error, refetch, isFetching } = useListDoctorsQuery({
@@ -95,7 +92,6 @@ export default function DoctorsPage() {
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'asc',
     search: quickFilter || undefined,
     q: quickFilter || undefined,
-    ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const [createDoctor, createState] = useCreateDoctorMutation()
@@ -113,13 +109,11 @@ export default function DoctorsPage() {
     [data?.items, paginationModel.page, paginationModel.pageSize]
   )
 
-  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo)
+  const hasActiveFilters = Boolean(quickFilter)
   const saving = createState.isLoading || updateState.isLoading || uploadState.isLoading
 
   function resetFilters() {
     setQuickFilter('')
-    setCreatedFrom('')
-    setCreatedTo('')
     setPaginationModel((p) => ({ ...p, page: 0 }))
   }
 
@@ -340,16 +334,7 @@ export default function DoctorsPage() {
           setPaginationModel((p) => ({ ...p, page: 0 }))
         }}
         searchPlaceholder="Search by name, phone, email, or qualification"
-        from={createdFrom}
-        to={createdTo}
-        onFromChange={(value) => {
-          setCreatedFrom(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
-        onToChange={(value) => {
-          setCreatedTo(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
+        showDates={false}
         onReset={resetFilters}
         resetDisabled={!hasActiveFilters}
       />
