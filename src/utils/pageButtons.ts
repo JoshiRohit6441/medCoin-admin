@@ -30,13 +30,14 @@ export const pageTableActionStackSx: SxProps<Theme> = {
   py: 0.5,
 }
 
-/** Wrapper so chips/buttons align inside DataGrid cells without clipping. */
+/** Wrapper so chips/buttons align inside DataGrid cells without clipping adjacent columns. */
 export const pageDataGridCellSx: SxProps<Theme> = {
   display: 'flex',
   alignItems: 'center',
   width: '100%',
+  minWidth: 0,
   minHeight: 32,
-  overflow: 'visible',
+  overflow: 'hidden',
 }
 
 export const pageDataGridDefaults = {

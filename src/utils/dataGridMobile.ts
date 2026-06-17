@@ -16,9 +16,15 @@ export const dataGridSx: SxProps<Theme> = {
     py: 1,
     px: 1.5,
     fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+    overflow: 'hidden',
+    minWidth: 0,
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    lineHeight: 1.4,
+  },
+  '& .MuiDataGrid-cell--textLeft, & .MuiDataGrid-cell--textRight, & .MuiDataGrid-cell--textCenter': {
     display: 'flex',
     alignItems: 'center',
-    overflow: 'visible',
   },
   '& .MuiDataGrid-columnHeaderTitle': {
     fontSize: { xs: '0.75rem', sm: '0.8125rem' },
