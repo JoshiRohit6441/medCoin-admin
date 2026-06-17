@@ -13,6 +13,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
+import { ProfilePageSkeleton } from '../../components/layout/AppSkeletons'
 import { useGetMeQuery, useUpdateProfileMutation } from '../../store/api/medcoinAdminApi'
 import { useAppToast } from '../../hooks/useAppToast'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
@@ -53,7 +54,7 @@ export default function MyProfilePage() {
   }
 
   if (loadingMe && !user) {
-    return <Typography color="text.secondary">Loading profile…</Typography>
+    return <ProfilePageSkeleton />
   }
 
   return (

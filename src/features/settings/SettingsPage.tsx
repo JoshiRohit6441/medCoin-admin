@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,6 +22,10 @@ import {
 import { useEffect, useState } from 'react'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
+import {
+  SettingsFormSkeleton,
+  ZapiSectionSkeleton,
+} from '../../components/layout/AppSkeletons'
 import {
   useDisconnectZapiMutation,
   useGetSettingsQuery,
@@ -119,33 +122,35 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleSaveConsultation(e: React.FormEvent) {
+  async function handleSaveSettings(e: React.FormEvent) {
     e.preventDefault()
     const amount = Number(priceAmount)
-    if (!Number.isFinite(amount) || amount <= 0) return
+    const expiryH = Number(sessionExpiryHours)
+    const warnH = Number(sessionExpiryWarnHours)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showError('Consultation price must be a positive number.')
+      return
+    }
+    if (!Number.isFinite(expiryH) || expiryH < 1) {
+      showError('Session expiry must be at least 1 hour.')
+      return
+    }
+    if (!Number.isFinite(warnH) || warnH < 0.25) {
+      showError('Warning lead time must be at least 0.25 hours.')
+      return
+    }
+    if (warnH >= expiryH) {
+      showError('Warning lead time must be less than session expiry hours.')
+      return
+    }
     try {
       await updateSettings({
         doctorWhatsappPhone: normalizeDoctorPhonesInput(doctorPhone),
         consultationPriceAmount: amount,
-      }).unwrap()
-      showSuccess('Consultation settings saved.')
-    } catch (err) {
-      showError(getErrorMessage(err))
-    }
-  }
-
-  async function handleSaveSessionTiming(e: React.FormEvent) {
-    e.preventDefault()
-    const expiryH = Number(sessionExpiryHours)
-    const warnH = Number(sessionExpiryWarnHours)
-    if (!Number.isFinite(expiryH) || expiryH < 1) return
-    if (!Number.isFinite(warnH) || warnH < 0.25) return
-    try {
-      await updateSettings({
         sessionExpiryHours: expiryH,
         sessionExpiryWarnHours: warnH,
       }).unwrap()
-      showSuccess('Session timing saved.')
+      showSuccess('Settings saved.')
     } catch (err) {
       showError(getErrorMessage(err))
     }
@@ -184,90 +189,76 @@ export default function SettingsPage() {
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-            Consultation & doctor
+            Consultation & session
           </Typography>
           {settingsLoading ? (
-            <CircularProgress size={24} />
+            <SettingsFormSkeleton />
           ) : (
-            <Box component="form" onSubmit={(e) => void handleSaveConsultation(e)}>
-              <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 480 } }}>
-                <TextField
-                  label="Doctor WhatsApp"
-                  value={doctorPhone}
-                  onChange={(e) => setDoctorPhone(e.target.value.replace(/[^\d,;\s]/g, ''))}
-                  helperText="Comma-separated numbers with country code (e.g. 5511999999999,917417435057). Booking alerts go to all."
-                  fullWidth
-                  size="small"
-                  placeholder="5511999999999,917417435057"
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                            +
-                          </Typography>
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
-
-                <TextField
-                  label="Consultation price"
-                  type="number"
-                  slotProps={{ htmlInput: { min: 1, step: 0.01 } }}
-                  value={priceAmount}
-                  onChange={(e) => setPriceAmount(e.target.value)}
-                  helperText={`Currency: ${settings?.consultationPriceCurrency ?? 'BRL'} (set in server .env as CONSULTATION_PRICE_CURRENCY)`}
-                  fullWidth
-                  size="small"
-                />
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={updateState.isLoading}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  {updateState.isLoading ? 'Saving…' : 'Save consultation settings'}
-                </Button>
-              </Stack>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card variant="outlined">
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-            Session expiry (WhatsApp)
-          </Typography>
-          {settingsLoading ? (
-            <CircularProgress size={24} />
-          ) : (
-            <Box component="form" onSubmit={(e) => void handleSaveSessionTiming(e)}>
-              <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 720 } }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Box component="form" onSubmit={(e) => void handleSaveSettings(e)}>
+              <Stack spacing={3} sx={{ maxWidth: { xs: '100%', sm: 720 } }}>
+                <Stack spacing={2} sx={{ maxWidth: { xs: '100%', sm: 480 } }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Doctor & pricing
+                  </Typography>
                   <TextField
-                    label="Session expiry (hours)"
+                    label="Platform numbers"
+                    value={doctorPhone}
+                    onChange={(e) => setDoctorPhone(e.target.value.replace(/[^\d,;\s]/g, ''))}
+                    helperText="Comma-separated numbers with country code (e.g. 5511999999999,917417435057). Booking alerts go to these numbers and all active doctors in Doctors. Duplicates receive one message only."
+                    fullWidth
+                    size="small"
+                    placeholder="5511999999999,917417435057"
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              +
+                            </Typography>
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                  />
+
+                  <TextField
+                    label="Consultation price"
                     type="number"
-                    slotProps={{ htmlInput: { min: 1, max: 168, step: 1 } }}
-                    value={sessionExpiryHours}
-                    onChange={(e) => setSessionExpiryHours(e.target.value)}
-                    helperText="Inactive sessions expire after this many hours"
+                    slotProps={{ htmlInput: { min: 1, step: 0.01 } }}
+                    value={priceAmount}
+                    onChange={(e) => setPriceAmount(e.target.value)}
+                    helperText={`Currency: ${settings?.consultationPriceCurrency ?? 'BRL'} (set in server .env as CONSULTATION_PRICE_CURRENCY)`}
                     fullWidth
                     size="small"
                   />
-                  <TextField
-                    label="Warning before expiry (hours)"
-                    type="number"
-                    slotProps={{ htmlInput: { min: 0.25, max: 48, step: 0.25 } }}
-                    value={sessionExpiryWarnHours}
-                    onChange={(e) => setSessionExpiryWarnHours(e.target.value)}
-                    helperText="WhatsApp reminder sent this long before expiry"
-                    fullWidth
-                    size="small"
-                  />
+                </Stack>
+
+                <Stack spacing={2}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Session expiry (WhatsApp)
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      label="Session expiry (hours)"
+                      type="number"
+                      slotProps={{ htmlInput: { min: 1, max: 168, step: 1 } }}
+                      value={sessionExpiryHours}
+                      onChange={(e) => setSessionExpiryHours(e.target.value)}
+                      helperText="Inactive sessions expire after this many hours"
+                      fullWidth
+                      size="small"
+                    />
+                    <TextField
+                      label="Warning before expiry (hours)"
+                      type="number"
+                      slotProps={{ htmlInput: { min: 0.25, max: 48, step: 0.25 } }}
+                      value={sessionExpiryWarnHours}
+                      onChange={(e) => setSessionExpiryWarnHours(e.target.value)}
+                      helperText="WhatsApp reminder sent this long before expiry"
+                      fullWidth
+                      size="small"
+                    />
+                  </Stack>
                 </Stack>
 
                 <Button
@@ -276,7 +267,7 @@ export default function SettingsPage() {
                   disabled={updateState.isLoading}
                   sx={{ alignSelf: 'flex-start' }}
                 >
-                  {updateState.isLoading ? 'Saving…' : 'Save session timing'}
+                  {updateState.isLoading ? 'Saving…' : 'Save settings'}
                 </Button>
               </Stack>
             </Box>
@@ -299,7 +290,7 @@ export default function SettingsPage() {
           </Typography>
 
           {zapiLoading ? (
-            <CircularProgress size={24} />
+            <ZapiSectionSkeleton />
           ) : !zapi?.configured ? (
             <Alert severity="warning">
               {zapi?.message ||
@@ -422,11 +413,7 @@ export default function SettingsPage() {
                       <Button
                         variant="contained"
                         startIcon={
-                          qrState.isFetching ? (
-                            <CircularProgress size={16} color="inherit" />
-                          ) : (
-                            <QrCodeScannerIcon />
-                          )
+                          qrState.isFetching ? undefined : <QrCodeScannerIcon />
                         }
                         onClick={() => void handleStartPairing()}
                         disabled={qrState.isFetching}

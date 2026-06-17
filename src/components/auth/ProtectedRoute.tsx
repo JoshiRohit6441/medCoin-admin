@@ -1,5 +1,6 @@
-import { Box, LinearProgress } from '@mui/material'
+import { Box } from '@mui/material'
 import { Navigate, Outlet } from 'react-router-dom'
+import { PageLoaderSkeleton } from '../layout/AppSkeletons'
 import { useGetMeQuery } from '../../store/api/medcoinAdminApi'
 import { useAppSelector } from '../../store/hooks'
 
@@ -15,7 +16,7 @@ export default function ProtectedRoute() {
   if (token && !user && isLoading) {
     return (
       <Box sx={{ p: 4 }}>
-        <LinearProgress />
+        <PageLoaderSkeleton />
       </Box>
     )
   }

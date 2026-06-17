@@ -19,6 +19,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
@@ -29,7 +30,7 @@ import {
 } from '../../store/api/medcoinAdminApi'
 import type { Consultation, DoctorMeeting } from '../../types/admin'
 import { formatPatientAge } from '../../utils/patientDisplay'
-import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { buildDateRangeParams } from '../../utils/dateFormat'
 import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageDrawerCloseSx, pageStatusChipSx, pageTableActionStackSx } from '../../utils/pageButtons'
@@ -114,8 +115,19 @@ function MeetLinkActions({
   )
 }
 
+const MOBILE_MEETING_COLUMN_VISIBILITY = {
+  __serial: false,
+  patientAge: false,
+  severity: false,
+  state: false,
+  bookingCode: false,
+  appointmentMeetingUrl: false,
+} as const
+
 export default function MeetingsPage() {
   const isMobile = useIsMobile()
+  const { columnVisibilityModel, onColumnVisibilityModelChange } =
+    useResponsiveColumnVisibility(MOBILE_MEETING_COLUMN_VISIBILITY)
   const { showSuccess, Host: ToastHost } = useAppToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialTiming = searchParams.get('timing') === 'past' ? 'past' : searchParams.get('timing') === 'upcoming' ? 'upcoming' : 'all'
@@ -152,7 +164,7 @@ export default function MeetingsPage() {
 
   const sort = sortModel[0]
   const { data: summary } = useGetMeetingsSummaryQuery()
-  const { data, isLoading, isError, error, refetch, isFetching } = useListMeetingsQuery({
+  const { data, isError, error, refetch, isFetching } = useListMeetingsQuery({
     page: paginationModel.page + 1,
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'appointmentStartAt',
@@ -406,20 +418,10 @@ export default function MeetingsPage() {
         <DataGrid
           rows={rows}
           columns={columns}
-          columnVisibilityModel={
-            isMobile
-              ? {
-                  __serial: false,
-                  patientAge: false,
-                  severity: false,
-                  state: false,
-                  bookingCode: false,
-                  appointmentMeetingUrl: false,
-                }
-              : undefined
-          }
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={onColumnVisibilityModelChange}
           getRowId={(r) => r._id}
-          loading={isLoading}
+          loading={isFetching}
           rowCount={data?.pagination.total ?? 0}
           paginationMode="server"
           sortingMode="server"
@@ -447,7 +449,7 @@ export default function MeetingsPage() {
         title="Meeting detail"
       >
           {!selectedId ? null : detailQuery.isLoading ? (
-            <Typography variant="body2">Loading…</Typography>
+            <DetailDrawerSkeleton rows={12} />
           ) : detailQuery.isError ? (
             <Alert severity="error">{getErrorMessage(detailQuery.error)}</Alert>
           ) : (

@@ -17,6 +17,7 @@ const PatientsPage = lazy(() => import('./features/patients/PatientsPage'))
 const ConsultationsPage = lazy(() => import('./features/consultations/ConsultationsPage'))
 const MeetingsPage = lazy(() => import('./features/meetings/MeetingsPage'))
 const TransactionsPage = lazy(() => import('./features/transactions/TransactionsPage'))
+const DoctorsPage = lazy(() => import('./features/doctors/DoctorsPage'))
 const SeveritiesPage = lazy(() => import('./features/severities/SeveritiesPage'))
 const MyProfilePage = lazy(() => import('./features/profile/MyProfilePage'))
 const ChangePasswordPage = lazy(() => import('./features/settings/ChangePasswordPage'))
@@ -152,6 +153,14 @@ export default function App() {
                   element={
                     <Lazy>
                       <TransactionsPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="doctors"
+                  element={
+                    <Lazy>
+                      <DoctorsPage />
                     </Lazy>
                   }
                 />

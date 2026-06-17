@@ -190,6 +190,18 @@ export type SeverityLevel = {
   updatedAt?: string
 }
 
+export type Doctor = {
+  _id: string
+  name: string
+  phone: string
+  profilePic?: string
+  email?: string
+  qualification?: string
+  status: 'active' | 'inactive'
+  createdAt?: string
+  updatedAt?: string
+}
+
 export type AdminOverview = {
   counts: {
     patients: number

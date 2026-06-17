@@ -10,9 +10,12 @@ import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data
 import { DataGrid } from '@mui/x-data-grid'
 import { useState } from 'react'
 import ListFilterBar from '../../components/forms/ListFilterBar'
+import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import { useGetStaffQuery, useListStaffQuery } from '../../store/api/medcoinAdminApi'
 import type { StaffMember } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { pageDataGridDefaults } from '../../utils/pageButtons'
 import { buildDateRangeParams, formatDateTime } from '../../utils/dateFormat'
 
 const columns: GridColDef<StaffMember>[] = [
@@ -45,7 +48,7 @@ export default function StaffPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const sort = sortModel[0]
-  const { data, isLoading, isError, error, refetch, isFetching } = useListStaffQuery({
+  const { data, isError, error, refetch, isFetching } = useListStaffQuery({
     page: paginationModel.page + 1,
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'createdAt',
@@ -96,12 +99,12 @@ export default function StaffPage() {
         onReset={resetFilters}
         resetDisabled={!hasActiveFilters}
       />
-      <Box sx={{ width: '100%', height: 520 }}>
+      <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
           rows={data?.items ?? []}
           columns={columns}
           getRowId={(r) => r._id as string}
-          loading={isLoading}
+          loading={isFetching}
           rowCount={data?.pagination.total ?? 0}
           paginationMode="server"
           sortingMode="server"
@@ -111,16 +114,9 @@ export default function StaffPage() {
           onSortModelChange={setSortModel}
           onRowClick={(params) => setSelectedId(String(params.id))}
           pageSizeOptions={[10, 25, 50]}
-          density="compact"
+          {...pageDataGridDefaults}
           disableRowSelectionOnClick
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            '& .MuiDataGrid-toolbarContainer': {
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            },
-          }}
+          sx={dataGridSx}
         />
       </Box>
 
@@ -130,7 +126,7 @@ export default function StaffPage() {
             Staff detail
           </Typography>
           {!selectedId ? null : detailQuery.isLoading ? (
-            <Typography variant="body2">Loading…</Typography>
+            <DetailDrawerSkeleton rows={5} />
           ) : detailQuery.isError ? (
             <Alert severity="error">{getErrorMessage(detailQuery.error)}</Alert>
           ) : (

@@ -1,4 +1,7 @@
 import type { SxProps, Theme } from '@mui/material'
+import type { GridColumnVisibilityModel } from '@mui/x-data-grid'
+import { useEffect, useState } from 'react'
+import { useIsMobile } from '../hooks/useBreakpoint'
 
 export const dataGridHeight = { xs: 440, sm: 520, md: 560 }
 
@@ -20,6 +23,15 @@ export const dataGridSx: SxProps<Theme> = {
   '& .MuiDataGrid-columnHeaderTitle': {
     fontSize: { xs: '0.75rem', sm: '0.8125rem' },
   },
+  '& .MuiDataGrid-panelContent': {
+    maxWidth: { xs: 'calc(100vw - 24px)', sm: 420 },
+  },
+  '& .MuiDataGrid-columnsManagementRow': {
+    minHeight: 44,
+  },
+  '& .MuiDataGrid-columnsManagementRow .MuiCheckbox-root': {
+    p: { xs: 1.25, sm: 1 },
+  },
   '& .MuiDataGrid-toolbarContainer': {
     borderBottom: '1px solid',
     borderColor: 'divider',
@@ -35,4 +47,19 @@ export const dataGridSx: SxProps<Theme> = {
 
 export function mobileGridPageSize(defaultDesktop = 25) {
   return { xs: 10, sm: defaultDesktop }
+}
+
+/** Keeps column visibility user-editable (required for Manage columns panel). */
+export function useResponsiveColumnVisibility(mobileHidden: GridColumnVisibilityModel) {
+  const isMobile = useIsMobile()
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState<GridColumnVisibilityModel>({})
+
+  useEffect(() => {
+    setColumnVisibilityModel(isMobile ? mobileHidden : {})
+  }, [isMobile, mobileHidden])
+
+  return {
+    columnVisibilityModel,
+    onColumnVisibilityModelChange: setColumnVisibilityModel,
+  }
 }

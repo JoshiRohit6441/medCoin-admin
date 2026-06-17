@@ -1,4 +1,5 @@
-import { Alert, Button, LinearProgress, Link, Stack, Typography } from '@mui/material'
+import { Alert, Button, Link, Stack, Typography } from '@mui/material'
+import { AuthFormSkeleton } from '../layout/AppSkeletons'
 import { useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -51,10 +52,7 @@ export default function ResetPasswordPage() {
   if (statusLoading) {
     return (
       <AuthShell>
-        <LinearProgress sx={{ mb: 2 }} />
-        <Typography variant="body2" color="text.secondary">
-          Verificando sessão de redefinição…
-        </Typography>
+        <AuthFormSkeleton />
       </AuthShell>
     )
   }

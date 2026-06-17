@@ -14,9 +14,11 @@ import type {
   DoctorMeeting,
   MeetingsSummary,
   ListResponse,
+  ListQueryParams,
   LoginResponse,
   Patient,
   SeverityLevel,
+  Doctor,
   StaffMember,
   Transaction,
   TransactionStats,
@@ -79,6 +81,7 @@ export const medcoinAdminApi = createApi({
     'Transaction',
     'Staff',
     'Severity',
+    'Doctor',
     'Overview',
     'Me',
     'AuthReset',
@@ -523,6 +526,75 @@ export const medcoinAdminApi = createApi({
       invalidatesTags: [{ type: 'Severity', id: 'LIST' }, 'Overview'],
     }),
 
+    listDoctors: builder.query<
+      ListResponse<Doctor>,
+      ListQueryParams & { status?: 'active' | 'inactive' }
+    >({
+      query: (params) => ({ url: '/doctors', params: params ?? {} }),
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.items.map((d) => ({ type: 'Doctor' as const, id: d._id })),
+              { type: 'Doctor', id: 'LIST' },
+            ]
+          : [{ type: 'Doctor', id: 'LIST' }],
+    }),
+    getDoctor: builder.query<{ item: Doctor }, string>({
+      query: (id) => `/doctors/${id}`,
+      providesTags: (_r, _e, id) => [{ type: 'Doctor', id }],
+    }),
+    createDoctor: builder.mutation<
+      { item: Doctor },
+      {
+        name: string
+        phone: string
+        email?: string
+        qualification?: string
+        status?: 'active' | 'inactive'
+      }
+    >({
+      query: (body) => ({ url: '/doctors', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Doctor', id: 'LIST' }],
+    }),
+    updateDoctor: builder.mutation<
+      { item: Doctor },
+      {
+        id: string
+        body: Partial<{
+          name: string
+          phone: string
+          email: string
+          qualification: string
+          status: 'active' | 'inactive'
+          profilePic: string
+        }>
+      }
+    >({
+      query: ({ id, body }) => ({ url: `/doctors/${id}`, method: 'PUT', body }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: 'Doctor', id },
+        { type: 'Doctor', id: 'LIST' },
+      ],
+    }),
+    deleteDoctor: builder.mutation<{ id: string }, string>({
+      query: (id) => ({ url: `/doctors/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_r, _e, id) => [
+        { type: 'Doctor', id },
+        { type: 'Doctor', id: 'LIST' },
+      ],
+    }),
+    uploadDoctorAvatar: builder.mutation<{ item: Doctor }, { id: string; file: File }>({
+      query: ({ id, file }) => {
+        const body = new FormData()
+        body.append('avatar', file)
+        return { url: `/doctors/${id}/avatar`, method: 'POST', body }
+      },
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: 'Doctor', id },
+        { type: 'Doctor', id: 'LIST' },
+      ],
+    }),
+
     getSettings: builder.query<{ settings: AppSettings }, void>({
       query: () => '/settings',
       providesTags: ['Settings'],
@@ -589,6 +661,12 @@ export const {
   useUpdateSeverityMutation,
   useDeleteSeverityMutation,
   useSeedDefaultSeveritiesMutation,
+  useListDoctorsQuery,
+  useGetDoctorQuery,
+  useCreateDoctorMutation,
+  useUpdateDoctorMutation,
+  useDeleteDoctorMutation,
+  useUploadDoctorAvatarMutation,
   useGetSettingsQuery,
   useUpdateSettingsMutation,
   useGetZapiConnectionQuery,

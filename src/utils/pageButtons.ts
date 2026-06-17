@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from '@mui/material'
+import { AdminGridColumnMenu } from './adminGridColumnMenu'
 
 /** Shared button styling for admin list pages (toolbar, table actions, drawers). */
 export const pageButtonProps = {
@@ -41,4 +42,15 @@ export const pageDataGridCellSx: SxProps<Theme> = {
 export const pageDataGridDefaults = {
   rowHeight: 52,
   density: 'standard' as const,
+  disableColumnFilter: true,
+  disableColumnSelector: false,
+  slots: {
+    columnMenu: AdminGridColumnMenu,
+  },
+  slotProps: {
+    columnsManagement: {
+      autoFocusSearchField: false,
+    },
+    loadingOverlay: { variant: 'skeleton' as const, noRowsVariant: 'skeleton' as const },
+  },
 }

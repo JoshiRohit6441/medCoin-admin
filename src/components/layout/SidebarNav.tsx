@@ -1,3 +1,4 @@
+import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutlined'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
@@ -49,6 +50,7 @@ export const NAV_ITEMS = [
   { to: '/consultations', label: 'Consultations', icon: LocalHospitalOutlinedIcon },
   { to: '/meetings', label: 'Doctor meetings', icon: EventAvailableOutlinedIcon },
   { to: '/transactions', label: 'Transactions', icon: PaymentsOutlinedIcon },
+  { to: '/doctors', label: 'Doctors', icon: MedicalServicesOutlinedIcon },
   { to: '/severities', label: 'Severity levels', icon: TuneOutlinedIcon },
   { to: '/settings', label: 'Settings', icon: SettingsOutlinedIcon },
 ] as const

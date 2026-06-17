@@ -18,3 +18,42 @@ body {
     touch-action: manipulation;
   }
 }
+
+/* Recharts hover/focus highlight boxes */
+.recharts-wrapper,
+.recharts-responsive-container {
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper:focus-within,
+.recharts-responsive-container:focus,
+.recharts-responsive-container:focus-visible,
+.recharts-responsive-container:focus-within,
+.recharts-wrapper svg:focus,
+.recharts-wrapper svg:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-layer:focus,
+.recharts-layer:focus-visible,
+.recharts-pie:focus,
+.recharts-pie:focus-visible {
+  outline: none !important;
+}
+
+.recharts-tooltip-cursor,
+.recharts-active-bar,
+.recharts-active-shape,
+path.recharts-tooltip-cursor,
+.recharts-rectangle.recharts-tooltip-cursor {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  fill: transparent !important;
+  stroke: transparent !important;
+  stroke-width: 0 !important;
+  pointer-events: none !important;
+}

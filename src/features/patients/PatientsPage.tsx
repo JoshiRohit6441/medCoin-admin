@@ -9,11 +9,13 @@ import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data
 import { DataGrid } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useGetPatientQuery, useListPatientsQuery } from '../../store/api/medcoinAdminApi'
 import type { Patient } from '../../types/admin'
-import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
+import { pageDataGridDefaults } from '../../utils/pageButtons'
 import { buildDateRangeParams } from '../../utils/dateFormat'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { formatPatientAge, formatPatientAgeWithUnit } from '../../utils/patientDisplay'
@@ -41,8 +43,16 @@ const columns: GridColDef<Patient & { __serial?: number }>[] = [
   dateTimeColumn('createdAt', 'Created'),
 ]
 
+const MOBILE_PATIENT_COLUMN_VISIBILITY = {
+  __serial: false,
+  age: false,
+  createdAt: false,
+} as const
+
 export default function PatientsPage() {
   const isMobile = useIsMobile()
+  const { columnVisibilityModel, onColumnVisibilityModelChange } =
+    useResponsiveColumnVisibility(MOBILE_PATIENT_COLUMN_VISIBILITY)
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: isMobile ? 10 : 25,
@@ -57,7 +67,7 @@ export default function PatientsPage() {
   const [selectedSerial, setSelectedSerial] = useState<number | null>(null)
 
   const sort = sortModel[0]
-  const { data, isLoading, isError, error, refetch, isFetching } = useListPatientsQuery({
+  const { data, isError, error, refetch, isFetching } = useListPatientsQuery({
     page: paginationModel.page + 1,
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'createdAt',
@@ -119,13 +129,10 @@ export default function PatientsPage() {
         <DataGrid
           rows={rows}
           columns={columns}
-          columnVisibilityModel={
-            isMobile
-              ? { __serial: false, age: false, createdAt: false }
-              : undefined
-          }
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={onColumnVisibilityModelChange}
           getRowId={(r) => r._id}
-          loading={isLoading}
+          loading={isFetching}
           rowCount={data?.pagination.total ?? 0}
           paginationMode="server"
           sortingMode="server"
@@ -138,11 +145,8 @@ export default function PatientsPage() {
             setSelectedSerial(Number(params.row.__serial) || null)
           }}
           pageSizeOptions={[10, 25, 50]}
-          density="compact"
+          {...pageDataGridDefaults}
           disableRowSelectionOnClick
-          slotProps={{
-            loadingOverlay: { variant: 'skeleton', noRowsVariant: 'skeleton' },
-          }}
           sx={dataGridSx}
         />
       </Box>
@@ -156,7 +160,7 @@ export default function PatientsPage() {
         title="Patient detail"
       >
           {!selectedId ? null : detailQuery.isLoading ? (
-            <Typography variant="body2">Loading…</Typography>
+            <DetailDrawerSkeleton rows={5} />
           ) : detailQuery.isError ? (
             <Alert severity="error">{getErrorMessage(detailQuery.error)}</Alert>
           ) : (

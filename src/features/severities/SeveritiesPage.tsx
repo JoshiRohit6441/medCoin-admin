@@ -29,11 +29,16 @@ import {
 import type { SeverityLevel } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { buildDateRangeParams } from '../../utils/dateFormat'
-import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults } from '../../utils/pageButtons'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const AI_KEYS = ['Low', 'Medium', 'High'] as const
+
+const MOBILE_SEVERITY_COLUMN_VISIBILITY = {
+  __serial: false,
+  description: false,
+} as const
 
 type FormState = {
   name: string
@@ -53,6 +58,8 @@ const emptyForm: FormState = {
 
 export default function SeveritiesPage() {
   const isMobile = useIsMobile()
+  const { columnVisibilityModel, onColumnVisibilityModelChange } =
+    useResponsiveColumnVisibility(MOBILE_SEVERITY_COLUMN_VISIBILITY)
   const { showSuccess, showError, Host: ToastHost } = useAppToast()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -65,7 +72,7 @@ export default function SeveritiesPage() {
   const [createdTo, setCreatedTo] = useState('')
 
   const sort = sortModel[0]
-  const { data, isLoading, isError, error, refetch, isFetching } = useListSeveritiesQuery({
+  const { data, isError, error, refetch, isFetching } = useListSeveritiesQuery({
     page: paginationModel.page + 1,
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'aiSeverityKey',
@@ -264,9 +271,10 @@ export default function SeveritiesPage() {
         <DataGrid
           rows={rows}
           columns={columns}
-          columnVisibilityModel={isMobile ? { __serial: false, description: false } : undefined}
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={onColumnVisibilityModelChange}
           getRowId={(r) => r._id}
-          loading={isLoading}
+          loading={isFetching}
           rowCount={data?.pagination.total ?? 0}
           paginationMode="server"
           sortingMode="server"

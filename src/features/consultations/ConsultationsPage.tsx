@@ -16,6 +16,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DetailDrawer from '../../components/layout/DetailDrawer'
+import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import {
@@ -32,7 +33,7 @@ import {
   isActiveSessionStateFilter,
 } from '../../utils/consultationState'
 import { formatPatientAge } from '../../utils/patientDisplay'
-import { dataGridHeight, dataGridSx } from '../../utils/dataGridMobile'
+import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { buildDateRangeParams } from '../../utils/dateFormat'
 import {
@@ -217,8 +218,19 @@ const columns: GridColDef<Consultation>[] = [
   },
 ]
 
+const MOBILE_CONSULTATION_COLUMN_VISIBILITY = {
+  __serial: false,
+  patientAge: false,
+  patientPhone: false,
+  bookingCode: false,
+  paymentStatus: false,
+  updatedAt: false,
+} as const
+
 export default function ConsultationsPage() {
   const isMobile = useIsMobile()
+  const { columnVisibilityModel, onColumnVisibilityModelChange } =
+    useResponsiveColumnVisibility(MOBILE_CONSULTATION_COLUMN_VISIBILITY)
   const [searchParams, setSearchParams] = useSearchParams()
 
   const stateFilter = searchParams.get('state') || ''
@@ -308,7 +320,7 @@ export default function ConsultationsPage() {
   }, [updateParams])
 
   const sort = sortModel[0]
-  const { data, isLoading, isError, error, refetch, isFetching } = useListConsultationsQuery({
+  const { data, isError, error, refetch, isFetching } = useListConsultationsQuery({
     page: paginationModel.page + 1,
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'updatedAt',
@@ -476,20 +488,10 @@ export default function ConsultationsPage() {
         <DataGrid
           rows={rows}
           columns={columns}
-          columnVisibilityModel={
-            isMobile
-              ? {
-                  __serial: false,
-                  patientAge: false,
-                  patientPhone: false,
-                  bookingCode: false,
-                  paymentStatus: false,
-                  updatedAt: false,
-                }
-              : undefined
-          }
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={onColumnVisibilityModelChange}
           getRowId={(r) => r._id}
-          loading={isLoading}
+          loading={isFetching}
           rowCount={data?.pagination.total ?? 0}
           paginationMode="server"
           sortingMode="server"
@@ -517,7 +519,7 @@ export default function ConsultationsPage() {
         title="Consultation detail"
       >
         {!selectedId ? null : detailQuery.isLoading ? (
-          <Typography variant="body2">Loading…</Typography>
+          <DetailDrawerSkeleton rows={10} />
         ) : detailQuery.isError ? (
           <Alert severity="error">{getErrorMessage(detailQuery.error)}</Alert>
         ) : (

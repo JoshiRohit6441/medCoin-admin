@@ -18,6 +18,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material/styles";
 import {
   Bar,
   BarChart,
@@ -27,12 +28,12 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Link } from "react-router-dom";
 import ListFilterBar from "../../components/forms/ListFilterBar";
+import { DashboardPageSkeleton } from "../../components/layout/AppSkeletons";
 import { useGetOverviewQuery, useGetZapiConnectionQuery } from "../../store/api/medcoinAdminApi";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { buildDateRangeParams } from "../../utils/dateFormat";
@@ -40,6 +41,44 @@ import { AUTH_NAVY } from "../../components/auth/authTheme";
 import { ACTIVE_SESSION_STATES } from "../../utils/consultationState";
 
 const NAVY = AUTH_NAVY;
+const CHART_PROPS = {
+  accessibilityLayer: false,
+  tabIndex: -1,
+  style: { outline: "none" },
+} as const;
+const CHART_CONTAINER_SX = {
+  width: "100%",
+  outline: "none",
+  "& .recharts-wrapper, & .recharts-surface, & .recharts-layer, & .recharts-responsive-container":
+    {
+      outline: "none !important",
+    },
+  "& .recharts-wrapper:focus, & .recharts-wrapper:focus-visible, & .recharts-wrapper:focus-within":
+    {
+      outline: "none !important",
+    },
+  "& .recharts-tooltip-cursor, & path.recharts-tooltip-cursor": {
+    display: "none !important",
+  },
+} as const;
+
+function DashboardChartBox({
+  children,
+  sx,
+}: {
+  children: ReactNode;
+  sx?: SxProps<Theme>;
+}) {
+  return (
+    <Box
+      sx={{ ...CHART_CONTAINER_SX, ...sx }}
+      onMouseDown={(event) => event.preventDefault()}
+    >
+      {children}
+    </Box>
+  );
+}
+
 const CHART_COLORS = [
   "#0f2744",
   "#1a3a5c",
@@ -177,7 +216,7 @@ export default function DashboardPage() {
     !zapiLoading && Boolean(zapi) && zapi?.connected !== true;
 
   if (isLoading) {
-    return <LinearProgress />;
+    return <DashboardPageSkeleton />;
   }
 
   if (isError) {
@@ -354,9 +393,10 @@ export default function DashboardPage() {
             >
               Consultations
             </Typography>
-            <Box sx={{ width: "100%", height: { xs: 220, sm: 280 } }}>
+            <DashboardChartBox sx={{ height: { xs: 220, sm: 280 } }}>
               <ResponsiveContainer>
                 <BarChart
+                  {...CHART_PROPS}
                   data={byDay}
                   margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
                 >
@@ -367,22 +407,16 @@ export default function DashboardPage() {
                     interval="preserveStartEnd"
                   />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #e2e8f0",
-                    }}
-                    formatter={(value) => [value, "Consultations"]}
-                  />
                   <Bar
                     dataKey="count"
                     fill={NAVY}
                     radius={[6, 6, 0, 0]}
                     maxBarSize={48}
+                    isAnimationActive={false}
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </DashboardChartBox>
           </CardContent>
         </Card>
 
@@ -401,7 +435,7 @@ export default function DashboardPage() {
             >
               Completed consultancies or sessions with severity assigned
             </Typography>
-            <Box sx={{ width: "100%", height: { xs: 220, sm: 280 } }}>
+            <DashboardChartBox sx={{ height: { xs: 220, sm: 280 } }}>
               {severityData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No severity data yet.
@@ -409,6 +443,7 @@ export default function DashboardPage() {
               ) : (
                 <ResponsiveContainer>
                   <BarChart
+                    {...CHART_PROPS}
                     data={severityData}
                     layout="vertical"
                     margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
@@ -429,8 +464,12 @@ export default function DashboardPage() {
                       width={56}
                       tick={{ fontSize: 12 }}
                     />
-                    <Tooltip contentStyle={{ borderRadius: 8 }} />
-                    <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={28}>
+                    <Bar
+                      dataKey="count"
+                      radius={[0, 6, 6, 0]}
+                      maxBarSize={28}
+                      isAnimationActive={false}
+                    >
                       {severityData.map((entry) => (
                         <Cell key={entry.name} fill={entry.fill} />
                       ))}
@@ -438,7 +477,7 @@ export default function DashboardPage() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </Box>
+            </DashboardChartBox>
           </CardContent>
         </Card>
       </Box>
@@ -458,9 +497,8 @@ export default function DashboardPage() {
             >
               Consultations by state
             </Typography>
-            <Box
+            <DashboardChartBox
               sx={{
-                width: "100%",
                 height: { xs: 220, sm: 260 },
                 display: "flex",
                 justifyContent: "center",
@@ -472,7 +510,7 @@ export default function DashboardPage() {
                 </Typography>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart {...CHART_PROPS}>
                     <Pie
                       data={pieData}
                       dataKey="value"
@@ -482,17 +520,18 @@ export default function DashboardPage() {
                       innerRadius={55}
                       outerRadius={90}
                       paddingAngle={2}
+                      rootTabIndex={-1}
+                      isAnimationActive={false}
                     >
                       {pieData.map((entry) => (
                         <Cell key={entry.name} fill={entry.fill} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: 8 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
-            </Box>
+            </DashboardChartBox>
           </CardContent>
         </Card>
 

@@ -1,9 +1,5 @@
-import { Box, CircularProgress } from '@mui/material'
+import { PageLoaderSkeleton } from './AppSkeletons'
 
 export default function PageLoader() {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-      <CircularProgress size={32} />
-    </Box>
-  )
+  return <PageLoaderSkeleton />
 }
