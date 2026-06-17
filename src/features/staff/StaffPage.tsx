@@ -8,8 +8,9 @@ import {
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ListFilterBar from '../../components/forms/ListFilterBar'
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import { useGetStaffQuery, useListStaffQuery } from '../../store/api/medcoinAdminApi'
 import type { StaffMember } from '../../types/admin'
@@ -42,7 +43,8 @@ export default function StaffPage() {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'createdAt', sort: 'desc' },
   ])
-  const [quickFilter, setQuickFilter] = useState('')
+  const { searchInput, debouncedSearch, setSearchInput, resetSearch, hasSearchInput } =
+    useDebouncedSearch()
   const [createdFrom, setCreatedFrom] = useState('')
   const [createdTo, setCreatedTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -53,16 +55,20 @@ export default function StaffPage() {
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'createdAt',
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'desc',
-    search: quickFilter || undefined,
-    q: quickFilter || undefined,
+    search: debouncedSearch || undefined,
+    q: debouncedSearch || undefined,
     ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const detailQuery = useGetStaffQuery(selectedId ?? '', { skip: !selectedId })
-  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo)
+  const hasActiveFilters = Boolean(hasSearchInput || createdFrom || createdTo)
+
+  useEffect(() => {
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }, [debouncedSearch])
 
   function resetFilters() {
-    setQuickFilter('')
+    resetSearch()
     setCreatedFrom('')
     setCreatedTo('')
     setPaginationModel((p) => ({ ...p, page: 0 }))
@@ -80,11 +86,8 @@ export default function StaffPage() {
       </Box>
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
       <ListFilterBar
-        search={quickFilter}
-        onSearchChange={(value) => {
-          setQuickFilter(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
+        search={searchInput}
+        onSearchChange={setSearchInput}
         searchPlaceholder="Search by name, email, or phone"
         from={createdFrom}
         to={createdTo}

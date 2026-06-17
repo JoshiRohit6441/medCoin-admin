@@ -12,10 +12,11 @@ import {
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import DetailDrawer from '../../components/layout/DetailDrawer'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
 import {
@@ -86,7 +87,8 @@ export default function TransactionsPage() {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'updatedAt', sort: 'desc' },
   ])
-  const [quickFilter, setQuickFilter] = useState('')
+  const { searchInput, debouncedSearch, setSearchInput, resetSearch, hasSearchInput } =
+    useDebouncedSearch()
   const [paymentStatus, setPaymentStatus] = useState('')
   const [createdFrom, setCreatedFrom] = useState('')
   const [createdTo, setCreatedTo] = useState('')
@@ -102,7 +104,7 @@ export default function TransactionsPage() {
       limit: paginationModel.pageSize,
       sortBy: sort?.field ?? 'updatedAt',
       sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'desc',
-      search: quickFilter || undefined,
+      search: debouncedSearch || undefined,
       paymentStatus: paymentStatus || undefined,
       ...dateParams,
     })
@@ -213,10 +215,14 @@ export default function TransactionsPage() {
   )
 
   const item = detailQuery.data?.item
-  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo || paymentStatus)
+  const hasActiveFilters = Boolean(hasSearchInput || createdFrom || createdTo || paymentStatus)
+
+  useEffect(() => {
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }, [debouncedSearch])
 
   function resetFilters() {
-    setQuickFilter('')
+    resetSearch()
     setCreatedFrom('')
     setCreatedTo('')
     setPaymentStatus('')
@@ -272,11 +278,8 @@ export default function TransactionsPage() {
       ) : null}
 
       <ListFilterBar
-        search={quickFilter}
-        onSearchChange={(value) => {
-          setQuickFilter(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
+        search={searchInput}
+        onSearchChange={setSearchInput}
         searchPlaceholder="Search patient, booking code, or payment ID"
         from={createdFrom}
         to={createdTo}

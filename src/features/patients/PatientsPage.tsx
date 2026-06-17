@@ -7,10 +7,11 @@ import {
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import DetailDrawer from '../../components/layout/DetailDrawer'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useGetPatientQuery, useListPatientsQuery } from '../../store/api/medcoinAdminApi'
 import type { Patient } from '../../types/admin'
@@ -60,7 +61,8 @@ export default function PatientsPage() {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'createdAt', sort: 'desc' },
   ])
-  const [quickFilter, setQuickFilter] = useState('')
+  const { searchInput, debouncedSearch, setSearchInput, resetSearch, hasSearchInput } =
+    useDebouncedSearch()
   const [createdFrom, setCreatedFrom] = useState('')
   const [createdTo, setCreatedTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -72,8 +74,8 @@ export default function PatientsPage() {
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'createdAt',
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'desc',
-    search: quickFilter || undefined,
-    q: quickFilter || undefined,
+    search: debouncedSearch || undefined,
+    q: debouncedSearch || undefined,
     ...buildDateRangeParams(createdFrom, createdTo),
   })
 
@@ -83,10 +85,14 @@ export default function PatientsPage() {
   )
 
   const detailQuery = useGetPatientQuery(selectedId ?? '', { skip: !selectedId })
-  const hasActiveFilters = Boolean(quickFilter || createdFrom || createdTo)
+  const hasActiveFilters = Boolean(hasSearchInput || createdFrom || createdTo)
+
+  useEffect(() => {
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }, [debouncedSearch])
 
   function resetFilters() {
-    setQuickFilter('')
+    resetSearch()
     setCreatedFrom('')
     setCreatedTo('')
     setPaginationModel((p) => ({ ...p, page: 0 }))
@@ -104,11 +110,8 @@ export default function PatientsPage() {
       </Box>
 
       <ListFilterBar
-        search={quickFilter}
-        onSearchChange={(value) => {
-          setQuickFilter(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
+        search={searchInput}
+        onSearchChange={setSearchInput}
         searchPlaceholder="Search by name or phone number"
         from={createdFrom}
         to={createdTo}

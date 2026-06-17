@@ -16,11 +16,12 @@ import {
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DetailDrawer from '../../components/layout/DetailDrawer'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
+import { useDebouncedSearch, useDebouncedValue } from '../../hooks/useDebouncedSearch'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
 import {
@@ -142,8 +143,15 @@ export default function MeetingsPage() {
   const [timing, setTiming] = useState<'all' | 'upcoming' | 'past'>(initialTiming)
   const [severity, setSeverity] = useState('')
   const [state, setState] = useState('')
-  const [patientSearch, setPatientSearch] = useState('')
-  const [bookingCode, setBookingCode] = useState('')
+  const {
+    searchInput: patientSearchInput,
+    debouncedSearch: debouncedPatientSearch,
+    setSearchInput: setPatientSearch,
+    resetSearch: resetPatientSearch,
+    hasSearchInput: hasPatientSearch,
+  } = useDebouncedSearch()
+  const [bookingCodeInput, setBookingCodeInput] = useState('')
+  const debouncedBookingCode = useDebouncedValue(bookingCodeInput.trim())
   const [appointmentFrom, setAppointmentFrom] = useState('')
   const [appointmentTo, setAppointmentTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -172,8 +180,8 @@ export default function MeetingsPage() {
     timing: timing === 'all' ? undefined : timing,
     severity: severity || undefined,
     state: state || undefined,
-    search: patientSearch.trim() || undefined,
-    bookingCode: bookingCode.trim() || undefined,
+    search: debouncedPatientSearch || undefined,
+    bookingCode: debouncedBookingCode || undefined,
     appointmentFrom: buildDateRangeParams(appointmentFrom, appointmentTo, 'appointment').appointmentFrom,
     appointmentTo: buildDateRangeParams(appointmentFrom, appointmentTo, 'appointment').appointmentTo,
   })
@@ -268,20 +276,25 @@ export default function MeetingsPage() {
   }
 
   const hasActiveFilters = Boolean(
-    patientSearch.trim() ||
+    hasPatientSearch ||
+      bookingCodeInput.trim() ||
+      debouncedBookingCode ||
       severity ||
       state ||
-      bookingCode.trim() ||
       appointmentFrom ||
       appointmentTo ||
       timing !== 'all'
   )
 
+  useEffect(() => {
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }, [debouncedPatientSearch, debouncedBookingCode])
+
   function resetFilters() {
-    setPatientSearch('')
+    resetPatientSearch()
     setSeverity('')
     setState('')
-    setBookingCode('')
+    setBookingCodeInput('')
     setAppointmentFrom('')
     setAppointmentTo('')
     applyTimingFilter('all')
@@ -323,11 +336,8 @@ export default function MeetingsPage() {
       </Stack>
 
       <ListFilterBar
-        search={patientSearch}
-        onSearchChange={(value) => {
-          setPatientSearch(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
+        search={patientSearchInput}
+        onSearchChange={setPatientSearch}
         searchLabel="Patient name or phone"
         searchPlaceholder="Name or phone number"
         from={appointmentFrom}
@@ -403,11 +413,8 @@ export default function MeetingsPage() {
         <TextField
           size="small"
           label="Booking code"
-          value={bookingCode}
-          onChange={(e) => {
-            setBookingCode(e.target.value)
-            setPaginationModel((p) => ({ ...p, page: 0 }))
-          }}
+          value={bookingCodeInput}
+          onChange={(e) => setBookingCodeInput(e.target.value)}
           fullWidth
         />
       </ListFilterBar>

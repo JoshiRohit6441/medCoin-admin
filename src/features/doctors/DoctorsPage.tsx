@@ -17,9 +17,10 @@ import {
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid } from '@mui/x-data-grid'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { resolveProfilePicUrl } from '../../config/api'
 import ListFilterBar from '../../components/forms/ListFilterBar'
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
 import {
@@ -82,7 +83,8 @@ export default function DoctorsPage() {
     pageSize: 25,
   })
   const [sortModel, setSortModel] = useState<GridSortModel>([{ field: 'name', sort: 'asc' }])
-  const [quickFilter, setQuickFilter] = useState('')
+  const { searchInput, debouncedSearch, setSearchInput, resetSearch, hasSearchInput } =
+    useDebouncedSearch()
 
   const sort = sortModel[0]
   const { data, isError, error, refetch, isFetching } = useListDoctorsQuery({
@@ -90,8 +92,8 @@ export default function DoctorsPage() {
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'name',
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'asc',
-    search: quickFilter || undefined,
-    q: quickFilter || undefined,
+    search: debouncedSearch || undefined,
+    q: debouncedSearch || undefined,
   })
 
   const [createDoctor, createState] = useCreateDoctorMutation()
@@ -109,11 +111,15 @@ export default function DoctorsPage() {
     [data?.items, paginationModel.page, paginationModel.pageSize]
   )
 
-  const hasActiveFilters = Boolean(quickFilter)
+  const hasActiveFilters = hasSearchInput
   const saving = createState.isLoading || updateState.isLoading || uploadState.isLoading
 
+  useEffect(() => {
+    setPaginationModel((p) => ({ ...p, page: 0 }))
+  }, [debouncedSearch])
+
   function resetFilters() {
-    setQuickFilter('')
+    resetSearch()
     setPaginationModel((p) => ({ ...p, page: 0 }))
   }
 
@@ -328,11 +334,8 @@ export default function DoctorsPage() {
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
 
       <ListFilterBar
-        search={quickFilter}
-        onSearchChange={(value) => {
-          setQuickFilter(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
+        search={searchInput}
+        onSearchChange={setSearchInput}
         searchPlaceholder="Search by name, phone, email, or qualification"
         showDates={false}
         onReset={resetFilters}

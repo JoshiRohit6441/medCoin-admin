@@ -15,6 +15,7 @@ import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data
 import { DataGrid } from '@mui/x-data-grid'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { SEARCH_DEBOUNCE_MS } from '../../constants/searchDebounce'
 import DetailDrawer from '../../components/layout/DetailDrawer'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
@@ -287,7 +288,7 @@ export default function ConsultationsPage() {
       const trimmed = searchInput.trim()
       if (trimmed === searchQuery) return
       updateParams({ search: trimmed || null })
-    }, 400)
+    }, SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
   }, [searchInput, searchQuery, updateParams])
 
