@@ -42,7 +42,6 @@ import { ACTIVE_SESSION_STATES } from "../../utils/consultationState";
 const NAVY = AUTH_NAVY;
 const CHART_PROPS = {
   accessibilityLayer: false,
-  tabIndex: -1,
   style: { outline: "none" },
 } as const;
 
@@ -55,9 +54,14 @@ const CHART_CONTAINER_SX = {
       outline: "none !important",
       overflow: "visible !important",
     },
-  "& .recharts-wrapper:focus, & .recharts-wrapper:focus-visible, & .recharts-wrapper:focus-within":
+  "& .recharts-wrapper:focus, & .recharts-wrapper:focus-visible, & .recharts-wrapper:focus-within, & .recharts-surface:focus, & .recharts-surface:focus-visible":
     {
       outline: "none !important",
+      boxShadow: "none !important",
+    },
+  "& .recharts-tooltip-cursor, & .recharts-active-bar, & .recharts-active-shape":
+    {
+      display: "none !important",
     },
   "& .recharts-tooltip-wrapper": {
     zIndex: 1500,
@@ -66,7 +70,7 @@ const CHART_CONTAINER_SX = {
 } as const;
 
 const CHART_TOOLTIP_PROPS = {
-  cursor: { fill: "rgba(15, 39, 68, 0.06)" },
+  cursor: false,
   allowEscapeViewBox: { x: true, y: true },
   wrapperStyle: {
     zIndex: 1500,
@@ -143,8 +147,12 @@ function ConsultationsByStateDonut({ data }: { data: DonutDatum[] }) {
       <Box
         component="svg"
         viewBox={`0 0 ${size} ${size}`}
-        sx={{ width: size, height: size, display: "block", overflow: "visible" }}
+        sx={{ width: size, height: size, display: "block", overflow: "visible", outline: "none" }}
         aria-label="Consultations by state chart"
+        focusable="false"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
       >
         {total > 0
           ? segments.map((seg) => (
@@ -210,7 +218,12 @@ function DashboardChartBox({
   sx?: SxProps<Theme>;
 }) {
   return (
-    <Box sx={{ ...CHART_CONTAINER_SX, ...sx }}>
+    <Box
+      sx={{ ...CHART_CONTAINER_SX, ...sx }}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
+    >
       {children}
     </Box>
   );

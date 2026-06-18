@@ -19,9 +19,11 @@ body {
   }
 }
 
-/* Recharts hover/focus highlight boxes */
+/* Recharts click/focus highlight boxes */
 .recharts-wrapper,
-.recharts-responsive-container {
+.recharts-responsive-container,
+.recharts-surface,
+svg.recharts-surface {
   user-select: none;
   -webkit-user-select: none;
   outline: none !important;
@@ -37,11 +39,10 @@ body {
 .recharts-wrapper svg:focus-visible,
 .recharts-surface:focus,
 .recharts-surface:focus-visible,
-.recharts-layer:focus,
-.recharts-layer:focus-visible,
-.recharts-pie:focus,
-.recharts-pie:focus-visible {
+svg.recharts-surface:focus,
+svg.recharts-surface:focus-visible {
   outline: none !important;
+  box-shadow: none !important;
 }
 
 .recharts-tooltip-cursor,
