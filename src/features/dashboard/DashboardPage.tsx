@@ -125,6 +125,7 @@ function describeDonutSegment(
 }
 
 function ConsultationsByStateDonut({ data }: { data: DonutDatum[] }) {
+  const [activeName, setActiveName] = useState<string | null>(null);
   const total = data.reduce((sum, row) => sum + row.value, 0);
   const size = 200;
   const cx = size / 2;
@@ -139,45 +140,87 @@ function ConsultationsByStateDonut({ data }: { data: DonutDatum[] }) {
     cursor += sweep;
     const end = cursor;
     const percent = total > 0 ? Math.round((row.value / total) * 100) : 0;
-    return { ...row, start, end, percent };
+    const mid = (start + end) / 2;
+    const labelPos = polarToCartesian(cx, cy, (innerR + outerR) / 2, mid);
+    return { ...row, start, end, percent, labelPos };
   });
+
+  const active = segments.find((seg) => seg.name === activeName) ?? null;
 
   return (
     <Stack spacing={1.5} sx={{ alignItems: "center", width: "100%" }}>
-      <Box
-        component="svg"
-        viewBox={`0 0 ${size} ${size}`}
-        sx={{ width: size, height: size, display: "block", overflow: "visible", outline: "none" }}
-        aria-label="Consultations by state chart"
-        focusable="false"
-        onMouseDown={(event) => {
-          event.preventDefault();
-        }}
-      >
-        {total > 0
-          ? segments.map((seg) => (
-              <path
-                key={seg.name}
-                d={describeDonutSegment(cx, cy, innerR, outerR, seg.start, seg.end)}
-                fill={seg.fill}
-                stroke="#fff"
-                strokeWidth={2}
-              >
-                <title>{`${seg.name}: ${seg.value} (${seg.percent}%)`}</title>
-              </path>
-            ))
-          : null}
-        <text
-          x={cx}
-          y={cy}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill={NAVY}
-          fontSize={16}
-          fontWeight={700}
+      <Box sx={{ position: "relative", width: size, height: size }}>
+        <Box
+          component="svg"
+          viewBox={`0 0 ${size} ${size}`}
+          sx={{ width: size, height: size, display: "block", overflow: "visible", outline: "none" }}
+          aria-label="Consultations by state chart"
+          focusable="false"
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
         >
-          {total}
-        </text>
+          {total > 0
+            ? segments.map((seg) => (
+                <path
+                  key={seg.name}
+                  d={describeDonutSegment(cx, cy, innerR, outerR, seg.start, seg.end)}
+                  fill={seg.fill}
+                  stroke="#fff"
+                  strokeWidth={2}
+                  style={{ cursor: "pointer", outline: "none" }}
+                  opacity={active && active.name !== seg.name ? 0.45 : 1}
+                  tabIndex={-1}
+                  onClick={() =>
+                    setActiveName((prev) => (prev === seg.name ? null : seg.name))
+                  }
+                  onMouseEnter={() => setActiveName(seg.name)}
+                  onMouseLeave={() =>
+                    setActiveName((prev) => (prev === seg.name ? null : prev))
+                  }
+                />
+              ))
+            : null}
+          <text
+            x={cx}
+            y={cy}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={NAVY}
+            fontSize={16}
+            fontWeight={700}
+          >
+            {total}
+          </text>
+        </Box>
+        {active ? (
+          <Box
+            sx={{
+              position: "absolute",
+              left: active.labelPos.x,
+              top: active.labelPos.y,
+              transform: "translate(-50%, calc(-100% - 8px))",
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+              borderRadius: 1,
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 4px 12px rgba(15, 39, 68, 0.12)",
+              backgroundColor: "#fff",
+              color: NAVY,
+              px: 1.25,
+              py: 0.75,
+              fontSize: 12,
+              zIndex: 1500,
+            }}
+          >
+            <Typography sx={{ fontWeight: 600, color: NAVY, fontSize: 12, lineHeight: 1.6 }}>
+              {active.name}
+            </Typography>
+            <Typography sx={{ color: NAVY, fontSize: 12, lineHeight: 1.6 }}>
+              Consultations : {active.value} ({active.percent}%)
+            </Typography>
+          </Box>
+        ) : null}
       </Box>
       <Stack
         direction="row"
