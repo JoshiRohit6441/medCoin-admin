@@ -617,7 +617,7 @@ export const medcoinAdminApi = createApi({
 
     getZapiConnection: builder.query<ZapiConnection, void>({
       query: () => '/zapi/connection',
-      providesTags: ['Zapi', 'Settings'],
+      providesTags: ['Zapi'],
     }),
     disconnectZapi: builder.mutation<{ value: boolean }, void>({
       query: () => ({ url: '/zapi/disconnect', method: 'POST' }),
