@@ -16,8 +16,9 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, useGridApiRef } from '@mui/x-data-grid'
 import { useMemo, useRef, useState, useEffect } from 'react'
+import ManageColumnsButton from '../../components/dataGrid/ManageColumnsButton'
 import { resolveProfilePicUrl } from '../../config/api'
 import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
@@ -33,6 +34,7 @@ import {
 import type { Doctor } from '../../types/admin'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
+import { optionalEmailError } from '../../utils/emailValidation'
 import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults } from '../../utils/pageButtons'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -69,6 +71,7 @@ function doctorInitial(name?: string) {
 }
 
 export default function DoctorsPage() {
+  const apiRef = useGridApiRef()
   const isMobile = useIsMobile()
   const { columnVisibilityModel, onColumnVisibilityModelChange } =
     useResponsiveColumnVisibility(MOBILE_DOCTOR_COLUMN_VISIBILITY)
@@ -104,6 +107,7 @@ export default function DoctorsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [emailTouched, setEmailTouched] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const rows = useMemo(
@@ -133,6 +137,7 @@ export default function DoctorsPage() {
   function openCreate() {
     setEditingId(null)
     setForm(emptyForm)
+    setEmailTouched(false)
     resetAvatarState()
     setDialogOpen(true)
   }
@@ -161,6 +166,13 @@ export default function DoctorsPage() {
       showError('Name and phone are required.')
       return
     }
+    const emailErr = optionalEmailError(form.email)
+    if (emailErr) {
+      setEmailTouched(true)
+      showError(emailErr)
+      return
+    }
+    const normalizedEmail = form.email.trim().toLowerCase()
     try {
       if (editingId) {
         await updateDoctor({
@@ -168,7 +180,7 @@ export default function DoctorsPage() {
           body: {
             name: form.name.trim(),
             phone: form.phone.replace(/\D/g, ''),
-            email: form.email.trim(),
+            email: normalizedEmail,
             qualification: form.qualification.trim(),
             status: form.status,
           },
@@ -179,7 +191,7 @@ export default function DoctorsPage() {
         const created = await createDoctor({
           name: form.name.trim(),
           phone: form.phone.replace(/\D/g, ''),
-          email: form.email.trim(),
+          email: normalizedEmail,
           qualification: form.qualification.trim(),
           status: form.status,
         }).unwrap()
@@ -283,6 +295,7 @@ export default function DoctorsPage() {
                   qualification: row.qualification ?? '',
                   status: row.status,
                 })
+                setEmailTouched(false)
                 setPendingAvatarFile(null)
                 if (avatarPreview) URL.revokeObjectURL(avatarPreview)
                 setAvatarPreview(null)
@@ -311,6 +324,8 @@ export default function DoctorsPage() {
 
   const avatarSrc =
     avatarPreview || resolveProfilePicUrl(existingProfilePic) || undefined
+
+  const emailFieldError = emailTouched ? optionalEmailError(form.email) : ''
 
   return (
     <Stack spacing={2}>
@@ -342,8 +357,12 @@ export default function DoctorsPage() {
         resetDisabled={!hasActiveFilters}
       />
 
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <ManageColumnsButton apiRef={apiRef} />
+      </Box>
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
+          apiRef={apiRef}
           rows={rows}
           columns={columns}
           columnVisibilityModel={columnVisibilityModel}
@@ -426,8 +445,8 @@ export default function DoctorsPage() {
             required
             fullWidth
             size="small"
-            placeholder="917417435057"
-            helperText="Country code included, digits only"
+            placeholder="Country code and mobile number"
+            helperText="Digits only — include country code (the + is added automatically)"
             slotProps={{
               input: {
                 startAdornment: (
@@ -445,8 +464,12 @@ export default function DoctorsPage() {
             type="email"
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            onBlur={() => setEmailTouched(true)}
+            error={Boolean(emailFieldError)}
+            helperText={emailFieldError || 'Optional — use a valid email address'}
             fullWidth
             size="small"
+            autoComplete="email"
           />
           <TextField
             label="Qualification"
@@ -479,7 +502,7 @@ export default function DoctorsPage() {
           >
             Cancel
           </Button>
-          <Button variant="contained" onClick={() => void submitForm()} disabled={saving}>
+          <Button variant="contained" onClick={() => void submitForm()} disabled={saving || Boolean(emailFieldError)}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </DialogActions>

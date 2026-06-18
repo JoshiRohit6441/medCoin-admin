@@ -24,6 +24,7 @@ import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
 import {
   SettingsFormSkeleton,
+  ZapiQrSkeleton,
   ZapiSectionSkeleton,
 } from '../../components/layout/AppSkeletons'
 import {
@@ -59,12 +60,14 @@ export default function SettingsPage() {
   const [sessionExpiryWarnHours, setSessionExpiryWarnHours] = useState('1')
   const [qrImage, setQrImage] = useState<string | null>(null)
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
+  const [zapiRefreshing, setZapiRefreshing] = useState(false)
   const { data: settingsData, isLoading: settingsLoading, refetch: refetchSettings } = useGetSettingsQuery()
   const [updateSettings, updateState] = useUpdateSettingsMutation()
 
   const {
     data: zapi,
     isLoading: zapiLoading,
+    isFetching: zapiFetching,
     refetch: refetchZapi,
   } = useGetZapiConnectionQuery(undefined, {
     pollingInterval: qrPolling && isZapiConnected === false ? 15000 : 0,
@@ -73,6 +76,18 @@ export default function SettingsPage() {
   })
 
   const zapiPairingActive = qrPolling && isZapiConnected === false
+  const showZapiSkeleton =
+    zapiLoading || zapiRefreshing || (zapiFetching && !zapi && !zapiPairingActive)
+
+  async function handleRefreshZapi() {
+    setZapiRefreshing(true)
+    try {
+      await refetchZapi()
+      await refetchSettings()
+    } finally {
+      setZapiRefreshing(false)
+    }
+  }
 
   const [disconnectZapi, disconnectState] = useDisconnectZapiMutation()
   const [fetchQr, qrState] = useLazyGetZapiQrCodeQuery()
@@ -291,7 +306,7 @@ export default function SettingsPage() {
             (refreshes every ~20 seconds per Z-API docs).
           </Typography>
 
-          {zapiLoading ? (
+          {showZapiSkeleton ? (
             <ZapiSectionSkeleton />
           ) : !zapi?.configured ? (
             <Alert severity="warning">
@@ -340,6 +355,8 @@ export default function SettingsPage() {
                       Scan a new QR only after disconnecting.
                     </Typography>
                   </Box>
+                ) : qrState.isFetching ? (
+                  <ZapiQrSkeleton />
                 ) : qrImage ? (
                   <Box
                     sx={{
@@ -460,9 +477,13 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <strong>Saved for redirects (DB):</strong>{' '}
-                    {settings?.whatsappBusinessPhone || zapi.savedBusinessPhone
-                      ? formatPhoneDisplay(settings?.whatsappBusinessPhone || zapi.savedBusinessPhone || '')
-                      : '—'}
+                    {settingsLoading ? (
+                      <Skeleton component="span" variant="text" width={120} sx={{ display: 'inline-block', verticalAlign: 'middle' }} />
+                    ) : settings?.whatsappBusinessPhone || zapi.savedBusinessPhone ? (
+                      formatPhoneDisplay(settings?.whatsappBusinessPhone || zapi.savedBusinessPhone || '')
+                    ) : (
+                      '—'
+                    )}
                   </div>
                   {zapi.deviceName ? (
                     <div>
@@ -525,8 +546,12 @@ export default function SettingsPage() {
                   >
                     {disconnectState.isLoading ? 'Disconnecting…' : 'Disconnect WhatsApp'}
                   </Button>
-                  <Button variant="outlined" onClick={() => void refetchZapi()}>
-                    Refresh status
+                  <Button
+                    variant="outlined"
+                    onClick={() => void handleRefreshZapi()}
+                    disabled={zapiRefreshing || zapiFetching}
+                  >
+                    {zapiRefreshing || zapiFetching ? 'Refreshing…' : 'Refresh status'}
                   </Button>
                 </Stack>
               </Stack>

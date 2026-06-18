@@ -4,9 +4,8 @@ import {
   GRID_COLUMN_MENU_SLOTS,
   type GridColumnMenuProps,
 } from '@mui/x-data-grid'
-import { GridColumnMenuManageItem } from '@mui/x-data-grid/components'
 
-/** Column menu with sort + Manage columns only (no Filter, no Hide column). */
+/** Column menu with sort only — use the global Manage columns button above each table. */
 export const AdminGridColumnMenu = forwardRef<HTMLUListElement, GridColumnMenuProps>(
   function AdminGridColumnMenu(props, ref) {
     return (
@@ -16,7 +15,7 @@ export const AdminGridColumnMenu = forwardRef<HTMLUListElement, GridColumnMenuPr
         slots={{
           columnMenuSortItem: GRID_COLUMN_MENU_SLOTS.columnMenuSortItem,
           columnMenuFilterItem: null,
-          columnMenuColumnsItem: GridColumnMenuManageItem,
+          columnMenuColumnsItem: null,
         }}
       />
     )

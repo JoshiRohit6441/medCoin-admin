@@ -2,6 +2,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -15,11 +16,11 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, useGridApiRef } from '@mui/x-data-grid'
 import { useMemo, useState } from 'react'
+import ManageColumnsButton from '../../components/dataGrid/ManageColumnsButton'
 import { useIsMobile } from '../../hooks/useBreakpoint'
 import { useAppToast } from '../../hooks/useAppToast'
-import ListFilterBar from '../../components/forms/ListFilterBar'
 import {
   useCreateSeverityMutation,
   useDeleteSeverityMutation,
@@ -28,9 +29,8 @@ import {
 } from '../../store/api/medcoinAdminApi'
 import type { SeverityLevel } from '../../types/admin'
 import { getErrorMessage } from '../../utils/errorMessage'
-import { buildDateRangeParams } from '../../utils/dateFormat'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
-import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults } from '../../utils/pageButtons'
+import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults, pageStatusChipSx } from '../../utils/pageButtons'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
 const AI_KEYS = ['Low', 'Medium', 'High'] as const
@@ -57,6 +57,7 @@ const emptyForm: FormState = {
 }
 
 export default function SeveritiesPage() {
+  const apiRef = useGridApiRef()
   const isMobile = useIsMobile()
   const { columnVisibilityModel, onColumnVisibilityModelChange } =
     useResponsiveColumnVisibility(MOBILE_SEVERITY_COLUMN_VISIBILITY)
@@ -68,8 +69,6 @@ export default function SeveritiesPage() {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'aiSeverityKey', sort: 'asc' },
   ])
-  const [createdFrom, setCreatedFrom] = useState('')
-  const [createdTo, setCreatedTo] = useState('')
 
   const sort = sortModel[0]
   const { data, isError, error, refetch, isFetching } = useListSeveritiesQuery({
@@ -77,7 +76,6 @@ export default function SeveritiesPage() {
     limit: paginationModel.pageSize,
     sortBy: sort?.field ?? 'aiSeverityKey',
     sortOrder: (sort?.sort as 'asc' | 'desc' | undefined) ?? 'asc',
-    ...buildDateRangeParams(createdFrom, createdTo),
   })
 
   const [createSeverity, createState] = useCreateSeverityMutation()
@@ -104,20 +102,28 @@ export default function SeveritiesPage() {
     [usedAiKeys]
   )
 
-  const hasActiveFilters = Boolean(createdFrom || createdTo)
-
-  function resetFilters() {
-    setCreatedFrom('')
-    setCreatedTo('')
-    setPaginationModel((p) => ({ ...p, page: 0 }))
-  }
-
   const columns: GridColDef<SeverityLevel>[] = useMemo(
     () => [
       serialColumn(),
       { field: 'name', headerName: 'Name', flex: 1, minWidth: 160 },
       { field: 'aiSeverityKey', headerName: 'AI key', width: 120 },
-      { field: 'isActive', headerName: 'Active', width: 90, type: 'boolean' },
+      {
+        field: 'isActive',
+        headerName: 'Active',
+        width: 100,
+        sortable: false,
+        renderCell: ({ value }) => (
+          <Box sx={pageDataGridCellSx}>
+            <Chip
+              size="small"
+              label={value ? 'Active' : 'Inactive'}
+              color={value ? 'success' : 'default'}
+              variant="outlined"
+              sx={pageStatusChipSx}
+            />
+          </Box>
+        ),
+      },
       {
         field: 'description',
         headerName: 'Description',
@@ -252,23 +258,12 @@ export default function SeveritiesPage() {
         </Alert>
       ) : null}
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
-      <ListFilterBar
-        showSearch={false}
-        from={createdFrom}
-        to={createdTo}
-        onFromChange={(value) => {
-          setCreatedFrom(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
-        onToChange={(value) => {
-          setCreatedTo(value)
-          setPaginationModel((p) => ({ ...p, page: 0 }))
-        }}
-        onReset={resetFilters}
-        resetDisabled={!hasActiveFilters}
-      />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <ManageColumnsButton apiRef={apiRef} />
+      </Box>
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
+          apiRef={apiRef}
           rows={rows}
           columns={columns}
           columnVisibilityModel={columnVisibilityModel}

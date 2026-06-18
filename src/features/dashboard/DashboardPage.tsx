@@ -24,10 +24,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
-  Pie,
-  PieChart,
+  LabelList,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -46,21 +45,162 @@ const CHART_PROPS = {
   tabIndex: -1,
   style: { outline: "none" },
 } as const;
+
 const CHART_CONTAINER_SX = {
   width: "100%",
   outline: "none",
+  overflow: "visible",
   "& .recharts-wrapper, & .recharts-surface, & .recharts-layer, & .recharts-responsive-container":
     {
       outline: "none !important",
+      overflow: "visible !important",
     },
   "& .recharts-wrapper:focus, & .recharts-wrapper:focus-visible, & .recharts-wrapper:focus-within":
     {
       outline: "none !important",
     },
-  "& .recharts-tooltip-cursor, & path.recharts-tooltip-cursor": {
-    display: "none !important",
+  "& .recharts-tooltip-wrapper": {
+    zIndex: 1500,
+    pointerEvents: "none",
   },
 } as const;
+
+const CHART_TOOLTIP_PROPS = {
+  cursor: { fill: "rgba(15, 39, 68, 0.06)" },
+  allowEscapeViewBox: { x: true, y: true },
+  wrapperStyle: {
+    zIndex: 1500,
+    pointerEvents: "none",
+    outline: "none",
+  },
+  contentStyle: {
+    borderRadius: 8,
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 4px 12px rgba(15, 39, 68, 0.12)",
+    fontSize: 12,
+    backgroundColor: "#fff",
+    color: NAVY,
+  },
+  labelStyle: { fontWeight: 600, color: NAVY },
+  itemStyle: { color: NAVY },
+} as const;
+
+const BAR_LABEL_STYLE = { fontSize: 11, fontWeight: 600, fill: NAVY };
+
+type DonutDatum = { name: string; value: number; fill: string };
+
+function polarToCartesian(cx: number, cy: number, radius: number, angleInDegrees: number) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians),
+  };
+}
+
+function describeDonutSegment(
+  cx: number,
+  cy: number,
+  innerRadius: number,
+  outerRadius: number,
+  startAngle: number,
+  endAngle: number,
+) {
+  const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+  const outerStart = polarToCartesian(cx, cy, outerRadius, startAngle);
+  const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle);
+  const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle);
+  const innerStart = polarToCartesian(cx, cy, innerRadius, startAngle);
+
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerEnd.x} ${innerEnd.y}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+    "Z",
+  ].join(" ");
+}
+
+function ConsultationsByStateDonut({ data }: { data: DonutDatum[] }) {
+  const total = data.reduce((sum, row) => sum + row.value, 0);
+  const size = 200;
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = 82;
+  const innerR = 55;
+
+  let cursor = 0;
+  const segments = data.map((row) => {
+    const start = cursor;
+    const sweep = total > 0 ? (row.value / total) * 360 : 0;
+    cursor += sweep;
+    const end = cursor;
+    const percent = total > 0 ? Math.round((row.value / total) * 100) : 0;
+    return { ...row, start, end, percent };
+  });
+
+  return (
+    <Stack spacing={1.5} sx={{ alignItems: "center", width: "100%" }}>
+      <Box
+        component="svg"
+        viewBox={`0 0 ${size} ${size}`}
+        sx={{ width: size, height: size, display: "block", overflow: "visible" }}
+        aria-label="Consultations by state chart"
+      >
+        {total > 0
+          ? segments.map((seg) => (
+              <path
+                key={seg.name}
+                d={describeDonutSegment(cx, cy, innerR, outerR, seg.start, seg.end)}
+                fill={seg.fill}
+                stroke="#fff"
+                strokeWidth={2}
+              >
+                <title>{`${seg.name}: ${seg.value} (${seg.percent}%)`}</title>
+              </path>
+            ))
+          : null}
+        <text
+          x={cx}
+          y={cy}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill={NAVY}
+          fontSize={16}
+          fontWeight={700}
+        >
+          {total}
+        </text>
+      </Box>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ flexWrap: "wrap", justifyContent: "center", px: 1 }}
+      >
+        {segments.map((seg) => (
+          <Stack
+            key={seg.name}
+            direction="row"
+            spacing={0.75}
+            sx={{ alignItems: "center" }}
+          >
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: 0.5,
+                bgcolor: seg.fill,
+                flexShrink: 0,
+              }}
+            />
+            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
+              {seg.name}: {seg.value} ({seg.percent}%)
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
 
 function DashboardChartBox({
   children,
@@ -70,10 +210,7 @@ function DashboardChartBox({
   sx?: SxProps<Theme>;
 }) {
   return (
-    <Box
-      sx={{ ...CHART_CONTAINER_SX, ...sx }}
-      onMouseDown={(event) => event.preventDefault()}
-    >
+    <Box sx={{ ...CHART_CONTAINER_SX, ...sx }}>
       {children}
     </Box>
   );
@@ -385,15 +522,15 @@ export default function DashboardPage() {
           gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
         }}
       >
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
+        <Card variant="outlined" sx={{ borderRadius: 2, overflow: "visible" }}>
+          <CardContent sx={{ overflow: "visible" }}>
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 700, color: NAVY, mb: 2 }}
             >
               Consultations
             </Typography>
-            <DashboardChartBox sx={{ height: { xs: 220, sm: 280 } }}>
+            <DashboardChartBox sx={{ height: { xs: 220, sm: 280 }, overflow: "visible" }}>
               <ResponsiveContainer>
                 <BarChart
                   {...CHART_PROPS}
@@ -407,21 +544,27 @@ export default function DashboardPage() {
                     interval="preserveStartEnd"
                   />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    {...CHART_TOOLTIP_PROPS}
+                    formatter={(value: number) => [value, "Consultations"]}
+                  />
                   <Bar
                     dataKey="count"
                     fill={NAVY}
                     radius={[6, 6, 0, 0]}
                     maxBarSize={48}
                     isAnimationActive={false}
-                  />
+                  >
+                    <LabelList dataKey="count" position="top" style={BAR_LABEL_STYLE} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </DashboardChartBox>
           </CardContent>
         </Card>
 
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
+        <Card variant="outlined" sx={{ borderRadius: 2, overflow: "visible" }}>
+          <CardContent sx={{ overflow: "visible" }}>
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 700, color: NAVY, mb: 0.5 }}
@@ -435,7 +578,7 @@ export default function DashboardPage() {
             >
               Completed consultancies or sessions with severity assigned
             </Typography>
-            <DashboardChartBox sx={{ height: { xs: 220, sm: 280 } }}>
+            <DashboardChartBox sx={{ height: { xs: 220, sm: 280 }, overflow: "visible" }}>
               {severityData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No severity data yet.
@@ -464,6 +607,10 @@ export default function DashboardPage() {
                       width={56}
                       tick={{ fontSize: 12 }}
                     />
+                    <Tooltip
+                      {...CHART_TOOLTIP_PROPS}
+                      formatter={(value: number) => [value, "Sessions"]}
+                    />
                     <Bar
                       dataKey="count"
                       radius={[0, 6, 6, 0]}
@@ -473,6 +620,7 @@ export default function DashboardPage() {
                       {severityData.map((entry) => (
                         <Cell key={entry.name} fill={entry.fill} />
                       ))}
+                      <LabelList dataKey="count" position="right" style={BAR_LABEL_STYLE} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -489,49 +637,23 @@ export default function DashboardPage() {
           gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
         }}
       >
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
+        <Card variant="outlined" sx={{ borderRadius: 2, overflow: "visible" }}>
+          <CardContent sx={{ overflow: "visible" }}>
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 700, color: NAVY, mb: 2 }}
             >
               Consultations by state
             </Typography>
-            <DashboardChartBox
-              sx={{
-                height: { xs: 220, sm: 260 },
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
+            <Box sx={{ overflow: "visible" }}>
               {pieData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No data yet.
                 </Typography>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart {...CHART_PROPS}>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={90}
-                      paddingAngle={2}
-                      rootTabIndex={-1}
-                      isAnimationActive={false}
-                    >
-                      {pieData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <ConsultationsByStateDonut data={pieData} />
               )}
-            </DashboardChartBox>
+            </Box>
           </CardContent>
         </Card>
 

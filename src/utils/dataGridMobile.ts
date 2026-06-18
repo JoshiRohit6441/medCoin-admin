@@ -1,7 +1,17 @@
 import type { SxProps, Theme } from '@mui/material'
 import type { GridColumnVisibilityModel } from '@mui/x-data-grid'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from '../hooks/useBreakpoint'
+
+function columnVisibilityEqual(
+  a: GridColumnVisibilityModel,
+  b: GridColumnVisibilityModel,
+): boolean {
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  return bKeys.every((key) => a[key] === b[key])
+}
 
 export const dataGridHeight = { xs: 440, sm: 520, md: 560 }
 
@@ -61,11 +71,16 @@ export function useResponsiveColumnVisibility(mobileHidden: GridColumnVisibility
   const [columnVisibilityModel, setColumnVisibilityModel] = useState<GridColumnVisibilityModel>({})
 
   useEffect(() => {
-    setColumnVisibilityModel(isMobile ? mobileHidden : {})
+    const next = isMobile ? mobileHidden : {}
+    setColumnVisibilityModel((prev) => (columnVisibilityEqual(prev, next) ? prev : next))
   }, [isMobile, mobileHidden])
+
+  const onColumnVisibilityModelChange = useCallback((model: GridColumnVisibilityModel) => {
+    setColumnVisibilityModel((prev) => (columnVisibilityEqual(prev, model) ? prev : model))
+  }, [])
 
   return {
     columnVisibilityModel,
-    onColumnVisibilityModelChange: setColumnVisibilityModel,
+    onColumnVisibilityModelChange,
   }
 }

@@ -12,8 +12,9 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, useGridApiRef } from '@mui/x-data-grid'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import ManageColumnsButton from '../../components/dataGrid/ManageColumnsButton'
 import { useSearchParams } from 'react-router-dom'
 import { SEARCH_DEBOUNCE_MS } from '../../constants/searchDebounce'
 import DetailDrawer from '../../components/layout/DetailDrawer'
@@ -229,6 +230,7 @@ const MOBILE_CONSULTATION_COLUMN_VISIBILITY = {
 } as const
 
 export default function ConsultationsPage() {
+  const apiRef = useGridApiRef()
   const isMobile = useIsMobile()
   const { columnVisibilityModel, onColumnVisibilityModelChange } =
     useResponsiveColumnVisibility(MOBILE_CONSULTATION_COLUMN_VISIBILITY)
@@ -446,13 +448,16 @@ export default function ConsultationsPage() {
           </Select>
         </FormControl>
         <FormControl size="small" fullWidth>
-          <InputLabel>Severity</InputLabel>
+          <InputLabel id="consultations-severity-label">Severity</InputLabel>
           <Select
+            labelId="consultations-severity-label"
             label="Severity"
-            value={severityFilter}
-            onChange={(e) => updateParams({ severity: e.target.value || null })}
+            value={severityFilter || 'all'}
+            onChange={(e) =>
+              updateParams({ severity: e.target.value === 'all' ? null : e.target.value })
+            }
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="all">All</MenuItem>
             {SEVERITIES.filter(Boolean).map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -465,12 +470,14 @@ export default function ConsultationsPage() {
           <Select
             labelId="consultations-payment-label"
             label="Payment status"
-            value={paymentStatusFilter}
+            value={paymentStatusFilter || 'all'}
             onChange={(e) =>
-              updateParams({ paymentStatus: e.target.value || null })
+              updateParams({
+                paymentStatus: e.target.value === 'all' ? null : e.target.value,
+              })
             }
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="all">All</MenuItem>
             <MenuItem value="paid">Paid</MenuItem>
             <MenuItem value="unpaid">Unpaid</MenuItem>
           </Select>
@@ -485,8 +492,12 @@ export default function ConsultationsPage() {
       ) : null}
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <ManageColumnsButton apiRef={apiRef} />
+      </Box>
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
+          apiRef={apiRef}
           rows={rows}
           columns={columns}
           columnVisibilityModel={columnVisibilityModel}

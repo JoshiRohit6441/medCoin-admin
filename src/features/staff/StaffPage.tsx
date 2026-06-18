@@ -7,8 +7,9 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, useGridApiRef } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
+import ManageColumnsButton from '../../components/dataGrid/ManageColumnsButton'
 import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
@@ -36,6 +37,7 @@ const columns: GridColDef<StaffMember>[] = [
 ]
 
 export default function StaffPage() {
+  const apiRef = useGridApiRef()
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 25,
@@ -102,8 +104,12 @@ export default function StaffPage() {
         onReset={resetFilters}
         resetDisabled={!hasActiveFilters}
       />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <ManageColumnsButton apiRef={apiRef} />
+      </Box>
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
+          apiRef={apiRef}
           rows={data?.items ?? []}
           columns={columns}
           getRowId={(r) => r._id as string}

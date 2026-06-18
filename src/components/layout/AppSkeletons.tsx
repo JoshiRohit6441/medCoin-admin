@@ -55,14 +55,60 @@ export function ZapiSectionSkeleton() {
     >
       <Skeleton
         variant="rounded"
-        sx={{ aspectRatio: '1', width: '100%', maxWidth: { xs: 280, md: '100%' }, mx: { xs: 'auto', md: 0 } }}
+        sx={{
+          aspectRatio: '1',
+          width: '100%',
+          maxWidth: { xs: 280, md: '100%' },
+          mx: { xs: 'auto', md: 0 },
+        }}
       />
       <Stack spacing={2} sx={{ minWidth: 0 }}>
-        <Skeleton variant="text" width="55%" height={28} />
-        <Skeleton variant="text" width="35%" height={24} />
-        <Skeleton variant="rounded" width={180} height={36} />
-        <Skeleton variant="text" width="70%" height={20} />
+        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+          <Skeleton variant="rounded" width={108} height={24} />
+          <Skeleton variant="rounded" width={96} height={24} />
+          <Skeleton variant="rounded" width={112} height={24} />
+        </Stack>
+        <Stack spacing={1.25}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Stack key={i} direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+              <Skeleton variant="text" width={`${22 + (i % 3) * 6}%`} height={22} />
+              <Skeleton variant="text" width={`${48 + (i % 2) * 14}%`} height={22} sx={{ flex: 1 }} />
+            </Stack>
+          ))}
+        </Stack>
+        <Skeleton variant="rounded" height={48} />
+        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+          <Skeleton variant="rounded" width={168} height={36} />
+          <Skeleton variant="rounded" width={120} height={36} />
+        </Stack>
       </Stack>
+    </Box>
+  )
+}
+
+export function ZapiQrSkeleton() {
+  return (
+    <Box
+      sx={{
+        aspectRatio: '1',
+        width: '100%',
+        maxWidth: { xs: 280, md: '100%' },
+        mx: { xs: 'auto', md: 0 },
+        borderRadius: 2,
+        border: '1px dashed',
+        borderColor: 'divider',
+        bgcolor: 'grey.50',
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1.5,
+      }}
+    >
+      <Skeleton variant="rounded" sx={{ width: '72%', height: '72%' }} />
+      <Skeleton variant="text" width="60%" height={18} />
+      <Skeleton variant="rounded" width={120} height={32} />
     </Box>
   )
 }

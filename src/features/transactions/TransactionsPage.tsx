@@ -11,8 +11,9 @@ import {
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, useGridApiRef } from '@mui/x-data-grid'
 import { useMemo, useState, useEffect } from 'react'
+import ManageColumnsButton from '../../components/dataGrid/ManageColumnsButton'
 import DetailDrawer from '../../components/layout/DetailDrawer'
 import { DetailDrawerSkeleton } from '../../components/layout/AppSkeletons'
 import ListFilterBar from '../../components/forms/ListFilterBar'
@@ -76,6 +77,7 @@ const MOBILE_TRANSACTION_COLUMN_VISIBILITY = {
 } as const
 
 export default function TransactionsPage() {
+  const apiRef = useGridApiRef()
   const isMobile = useIsMobile()
   const { columnVisibilityModel, onColumnVisibilityModelChange } =
     useResponsiveColumnVisibility(MOBILE_TRANSACTION_COLUMN_VISIBILITY)
@@ -317,8 +319,12 @@ export default function TransactionsPage() {
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
 
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <ManageColumnsButton apiRef={apiRef} />
+      </Box>
       <Box sx={{ width: '100%', height: dataGridHeight }}>
         <DataGrid
+          apiRef={apiRef}
           rows={rows}
           columns={columns}
           columnVisibilityModel={columnVisibilityModel}
