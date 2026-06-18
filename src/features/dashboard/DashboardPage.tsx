@@ -546,7 +546,7 @@ export default function DashboardPage() {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                   <Tooltip
                     {...CHART_TOOLTIP_PROPS}
-                    formatter={(value: number) => [value, "Consultations"]}
+                    formatter={(value) => [value ?? 0, "Consultations"]}
                   />
                   <Bar
                     dataKey="count"
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                     />
                     <Tooltip
                       {...CHART_TOOLTIP_PROPS}
-                      formatter={(value: number) => [value, "Sessions"]}
+                      formatter={(value) => [value ?? 0, "Sessions"]}
                     />
                     <Bar
                       dataKey="count"
