@@ -2,9 +2,11 @@ import {
   Alert,
   Box,
   Button,
+  Link,
   Stack,
   Typography,
 } from '@mui/material'
+import WhatsAppIcon from '@mui/icons-material/WhatsApp'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
 import { DataGrid, useGridApiRef } from '@mui/x-data-grid'
 import { useMemo, useState, useEffect } from 'react'
@@ -20,12 +22,41 @@ import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../..
 import { pageDataGridDefaults } from '../../utils/pageButtons'
 import { buildDateRangeParams } from '../../utils/dateFormat'
 import { getErrorMessage } from '../../utils/errorMessage'
-import { formatPatientAge, formatPatientAgeWithUnit } from '../../utils/patientDisplay'
+import { formatPatientAge, formatPatientAgeWithUnit, buildWhatsAppChatUrl } from '../../utils/patientDisplay'
 import { formatDateTime, serialColumn, withSerialNumbers, dateTimeColumn } from '../../utils/gridSerial'
 
 const columns: GridColDef<Patient & { __serial?: number }>[] = [
   serialColumn(),
-  { field: 'phone', headerName: 'Phone', minWidth: 140, flex: 0.4 },
+  { field: 'phone', headerName: 'Phone', minWidth: 168, flex: 0.45,
+    sortable: false,
+    renderCell: (params) => {
+      const phone = String(params.value ?? '')
+      const waUrl = buildWhatsAppChatUrl(phone)
+      if (!phone) return '—'
+      if (!waUrl) return phone
+      return (
+        <Link
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            color: '#25D366',
+            fontWeight: 500,
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+          aria-label={`Open WhatsApp chat with ${phone}`}
+        >
+          <WhatsAppIcon sx={{ fontSize: 18 }} />
+          {phone}
+        </Link>
+      )
+    },
+  },
   {
     field: 'name',
     headerName: 'Name',
@@ -180,7 +211,30 @@ export default function PatientsPage() {
                 </Typography>
               ) : null}
               <Typography variant="body2">
-                <strong>Phone:</strong> {detailQuery.data?.item.phone}
+                <strong>Phone:</strong>{' '}
+                {(() => {
+                  const phone = detailQuery.data?.item.phone ?? ''
+                  const waUrl = buildWhatsAppChatUrl(phone)
+                  if (!phone) return '—'
+                  if (!waUrl) return phone
+                  return (
+                    <Link
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        color: '#25D366',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <WhatsAppIcon sx={{ fontSize: 16 }} />
+                      {phone}
+                    </Link>
+                  )
+                })()}
               </Typography>
               <Typography variant="body2">
                 <strong>Name:</strong> {detailQuery.data?.item.name || '—'}
