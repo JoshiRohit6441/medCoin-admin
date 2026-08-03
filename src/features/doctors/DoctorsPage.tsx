@@ -34,7 +34,7 @@ import {
 import type { Doctor } from '../../types/admin'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
-import { optionalEmailError } from '../../utils/emailValidation'
+import { requiredEmailError } from '../../utils/emailValidation'
 import { pageButtonProps, pageDataGridCellSx, pageDataGridDefaults } from '../../utils/pageButtons'
 import { serialColumn, withSerialNumbers } from '../../utils/gridSerial'
 
@@ -166,7 +166,7 @@ export default function DoctorsPage() {
       showError('Name and phone are required.')
       return
     }
-    const emailErr = optionalEmailError(form.email)
+    const emailErr = requiredEmailError(form.email)
     if (emailErr) {
       setEmailTouched(true)
       showError(emailErr)
@@ -325,7 +325,7 @@ export default function DoctorsPage() {
   const avatarSrc =
     avatarPreview || resolveProfilePicUrl(existingProfilePic) || undefined
 
-  const emailFieldError = emailTouched ? optionalEmailError(form.email) : ''
+  const emailFieldError = emailTouched ? requiredEmailError(form.email) : ''
 
   return (
     <Stack spacing={2}>
@@ -465,8 +465,9 @@ export default function DoctorsPage() {
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             onBlur={() => setEmailTouched(true)}
+            required
             error={Boolean(emailFieldError)}
-            helperText={emailFieldError || 'Optional — use a valid email address'}
+            helperText={emailFieldError || 'Required — booking details are sent to this address'}
             fullWidth
             size="small"
             autoComplete="email"
