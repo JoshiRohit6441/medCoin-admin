@@ -3,11 +3,16 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material'
 import type { GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid'
@@ -25,6 +30,7 @@ import {
   useGetTransactionStatsQuery,
   useListTransactionsQuery,
   useMockCompleteTransactionPaymentMutation,
+  useResendTransactionPaymentLinkMutation,
   useSyncTransactionPaymentMutation,
 } from '../../store/api/medcoinAdminApi'
 import type { Transaction } from '../../types/admin'
@@ -113,7 +119,10 @@ export default function TransactionsPage() {
 
   const detailQuery = useGetTransactionQuery(selectedId ?? '', { skip: !selectedId })
   const [syncPayment, syncState] = useSyncTransactionPaymentMutation()
+  const [resendPaymentLink, resendState] = useResendTransactionPaymentLinkMutation()
   const [mockCompletePayment, mockCompleteState] = useMockCompleteTransactionPaymentMutation()
+  const [resendDialogOpen, setResendDialogOpen] = useState(false)
+  const [resendAgeInput, setResendAgeInput] = useState('')
   const devMode = import.meta.env.DEV
 
   async function handleSyncPayment(id: string) {
@@ -129,6 +138,42 @@ export default function TransactionsPage() {
     try {
       await mockCompletePayment(id).unwrap()
       showSuccess('Payment marked complete. Calendly link sent on WhatsApp.')
+    } catch (err) {
+      showError(getErrorMessage(err))
+    }
+  }
+
+  function canResendPaymentLink(item: Transaction): boolean {
+    const state = String(item.state || '')
+    if (['BOOKING_PENDING', 'BOOKED', 'DOCTOR_NOTIFIED'].includes(state)) return false
+    if (state === 'COMPLETED' && item.paymentStatus === 'approved') return false
+    return [
+      'STARTED',
+      'TRIAGE_IN_PROGRESS',
+      'TRIAGE_COMPLETED',
+      'PAYMENT_PENDING',
+      'EXPIRED',
+      'COMPLETED',
+    ].includes(state)
+  }
+
+  async function confirmResendPaymentLink() {
+    if (!selectedId) return
+    const ageTrim = resendAgeInput.trim()
+    let patientAge: number | undefined
+    if (ageTrim) {
+      const n = Number(ageTrim)
+      if (!Number.isFinite(n) || n < 1 || n > 130) {
+        showError('Enter a valid adult age (1–130), or leave blank if already on file.')
+        return
+      }
+      patientAge = Math.round(n)
+    }
+    try {
+      await resendPaymentLink({ id: selectedId, patientAge }).unwrap()
+      showSuccess('Payment link sent on WhatsApp. Patient can continue booking.')
+      setResendDialogOpen(false)
+      setResendAgeInput('')
     } catch (err) {
       showError(getErrorMessage(err))
     }
@@ -484,6 +529,30 @@ export default function TransactionsPage() {
                   Sync payment from Mercado Pago
                 </Button>
               ) : null}
+              {canResendPaymentLink(item) ? (
+                <>
+                  <Alert severity="info" sx={{ mt: 0.5 }}>
+                    Regenerates the Mercado Pago link and sends it on WhatsApp so the patient can
+                    continue. If age is missing (e.g. parent booked for a child), enter the
+                    WhatsApp adult&apos;s age first.
+                  </Alert>
+                  <Button
+                    {...pageButtonProps}
+                    color="secondary"
+                    disabled={resendState.isLoading}
+                    onClick={() => {
+                      const age =
+                        item.patient && typeof item.patient === 'object' && 'age' in item.patient
+                          ? item.patient.age
+                          : null
+                      setResendAgeInput(age != null ? String(age) : '')
+                      setResendDialogOpen(true)
+                    }}
+                  >
+                    Resend payment link
+                  </Button>
+                </>
+              ) : null}
               {devMode && item.paymentStatus === 'awaiting' ? (
                 <>
                   <Alert severity="info" sx={{ mt: 0.5 }}>
@@ -515,6 +584,49 @@ export default function TransactionsPage() {
             Close
           </Button>
       </DetailDrawer>
+
+      <Dialog
+        open={resendDialogOpen}
+        onClose={() => {
+          if (!resendState.isLoading) setResendDialogOpen(false)
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Resend payment link</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            This creates a new checkout link and sends it to the patient on WhatsApp so they can
+            pay and book again.
+          </Typography>
+          <TextField
+            label="Adult age (WhatsApp user)"
+            type="number"
+            value={resendAgeInput}
+            onChange={(e) => setResendAgeInput(e.target.value)}
+            fullWidth
+            size="small"
+            helperText="Required if age is not on file. Use the person chatting, not the child."
+            inputProps={{ min: 1, max: 130 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setResendDialogOpen(false)}
+            disabled={resendState.isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={resendState.isLoading}
+            onClick={() => void confirmResendPaymentLink()}
+          >
+            {resendState.isLoading ? 'Sending…' : 'Send link'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <ToastHost />
     </Stack>
   )

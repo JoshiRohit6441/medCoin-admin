@@ -389,6 +389,22 @@ export const medcoinAdminApi = createApi({
         { type: 'Consultation', id },
       ],
     }),
+    resendTransactionPaymentLink: builder.mutation<
+      { paymentUrl?: string; item: Transaction },
+      { id: string; patientAge?: number }
+    >({
+      query: ({ id, patientAge }) => ({
+        url: `/transactions/${id}/resend-payment-link`,
+        method: 'POST',
+        body: patientAge != null ? { patientAge } : {},
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: 'Transaction', id },
+        { type: 'Transaction', id: 'LIST' },
+        { type: 'Consultation', id },
+        'Overview',
+      ],
+    }),
     mockCompleteTransactionPayment: builder.mutation<
       { mock: Record<string, unknown>; item: Transaction },
       string
@@ -652,6 +668,7 @@ export const {
   useListTransactionsQuery,
   useGetTransactionQuery,
   useSyncTransactionPaymentMutation,
+  useResendTransactionPaymentLinkMutation,
   useMockCompleteTransactionPaymentMutation,
   useListStaffQuery,
   useGetStaffQuery,
