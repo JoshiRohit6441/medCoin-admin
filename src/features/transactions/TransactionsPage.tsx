@@ -607,7 +607,7 @@ export default function TransactionsPage() {
             fullWidth
             size="small"
             helperText="Required if age is not on file. Use the person chatting, not the child."
-            inputProps={{ min: 1, max: 130 }}
+            slotProps={{ htmlInput: { min: 1, max: 130 } }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
