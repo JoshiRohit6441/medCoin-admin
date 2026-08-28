@@ -1,3 +1,4 @@
+import PauseCircleOutlinedIcon from '@mui/icons-material/PauseCircleOutlined'
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import WhatsAppIcon from '@mui/icons-material/WhatsApp'
@@ -16,6 +17,7 @@ import {
   InputAdornment,
   Skeleton,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material'
@@ -58,6 +60,9 @@ export default function SettingsPage() {
   const [priceAmount, setPriceAmount] = useState('')
   const [sessionExpiryHours, setSessionExpiryHours] = useState('6')
   const [sessionExpiryWarnHours, setSessionExpiryWarnHours] = useState('1')
+  const [consultationsPaused, setConsultationsPaused] = useState(false)
+  const [pausedMessage, setPausedMessage] = useState('')
+  const [pauseSaving, setPauseSaving] = useState(false)
   const [qrImage, setQrImage] = useState<string | null>(null)
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
   const [zapiRefreshing, setZapiRefreshing] = useState(false)
@@ -100,6 +105,8 @@ export default function SettingsPage() {
     setPriceAmount(String(settings.consultationPriceAmount ?? ''))
     setSessionExpiryHours(String(settings.sessionExpiryHours ?? 6))
     setSessionExpiryWarnHours(String(settings.sessionExpiryWarnHours ?? 1))
+    setConsultationsPaused(Boolean(settings.consultationsPaused))
+    setPausedMessage(settings.consultationsPausedMessage || '')
   }, [settings])
 
   useEffect(() => {
@@ -173,6 +180,39 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleTogglePaused(next: boolean) {
+    setConsultationsPaused(next)
+    setPauseSaving(true)
+    try {
+      await updateSettings({
+        consultationsPaused: next,
+        consultationsPausedMessage: pausedMessage.trim(),
+      }).unwrap()
+      showSuccess(
+        next
+          ? 'Payments and bookings paused. Patients get the pause message.'
+          : 'Consultations reopened. Payment and booking links are active again.',
+      )
+    } catch (err) {
+      setConsultationsPaused(!next)
+      showError(getErrorMessage(err))
+    } finally {
+      setPauseSaving(false)
+    }
+  }
+
+  async function handleSavePauseMessage() {
+    setPauseSaving(true)
+    try {
+      await updateSettings({ consultationsPausedMessage: pausedMessage.trim() }).unwrap()
+      showSuccess('Pause message saved.')
+    } catch (err) {
+      showError(getErrorMessage(err))
+    } finally {
+      setPauseSaving(false)
+    }
+  }
+
   async function confirmDisconnect() {
     try {
       await disconnectZapi().unwrap()
@@ -202,6 +242,81 @@ export default function SettingsPage() {
           Consultation pricing, session timeouts, doctor alerts, and WhatsApp (Z-API).
         </Typography>
       </Box>
+
+      <Card variant="outlined">
+        <CardContent>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+          >
+            <Box>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
+                <PauseCircleOutlinedIcon color={consultationsPaused ? 'warning' : 'action'} />
+                Payments & bookings
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Turn this off to stop new payment links and Calendly booking links. Sofia keeps
+                chatting and finishing triage.
+              </Typography>
+            </Box>
+            {settingsLoading ? (
+              <Skeleton variant="rounded" width={140} height={38} />
+            ) : (
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Chip
+                  size="small"
+                  label={consultationsPaused ? 'Paused' : 'Active'}
+                  color={consultationsPaused ? 'warning' : 'success'}
+                />
+                <Switch
+                  checked={!consultationsPaused}
+                  disabled={pauseSaving}
+                  onChange={(e) => void handleTogglePaused(!e.target.checked)}
+                  slotProps={{ input: { 'aria-label': 'Payments and bookings enabled' } }}
+                />
+              </Stack>
+            )}
+          </Stack>
+
+          {!settingsLoading && consultationsPaused ? (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Paused: no new payment link after triage, no booking link after an approved payment,
+              and existing booking links are blocked. Patients receive the message below.
+            </Alert>
+          ) : null}
+
+          {settingsLoading ? null : (
+            <Stack spacing={1.5} sx={{ mt: 2, maxWidth: { xs: '100%', sm: 720 } }}>
+              <TextField
+                label="Message sent to patients while paused"
+                value={pausedMessage}
+                onChange={(e) => setPausedMessage(e.target.value)}
+                placeholder="Leave empty to use the default Portuguese message"
+                helperText={`${pausedMessage.length}/900 characters — sent on WhatsApp instead of the payment or booking link.`}
+                multiline
+                minRows={3}
+                fullWidth
+                size="small"
+                slotProps={{ htmlInput: { maxLength: 900 } }}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => void handleSavePauseMessage()}
+                disabled={
+                  pauseSaving || pausedMessage.trim() === (settings?.consultationsPausedMessage || '')
+                }
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                {pauseSaving ? 'Saving…' : 'Save message'}
+              </Button>
+            </Stack>
+          )}
+        </CardContent>
+      </Card>
 
       <Card variant="outlined">
         <CardContent>

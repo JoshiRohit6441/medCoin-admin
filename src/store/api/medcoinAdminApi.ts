@@ -622,6 +622,8 @@ export const medcoinAdminApi = createApi({
           AppSettings,
           | 'doctorWhatsappPhone'
           | 'consultationPriceAmount'
+          | 'consultationsPaused'
+          | 'consultationsPausedMessage'
           | 'sessionExpiryHours'
           | 'sessionExpiryWarnHours'
         >

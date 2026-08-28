@@ -42,6 +42,8 @@ export type AppSettings = {
   whatsappBusinessPhone?: string
   consultationPriceAmount: number
   consultationPriceCurrency: string
+  consultationsPaused: boolean
+  consultationsPausedMessage: string
   sessionExpiryHours: number
   sessionExpiryWarnHours: number
   updatedAt?: string
