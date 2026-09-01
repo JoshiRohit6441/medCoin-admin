@@ -22,6 +22,7 @@ const SeveritiesPage = lazy(() => import('./features/severities/SeveritiesPage')
 const MyProfilePage = lazy(() => import('./features/profile/MyProfilePage'))
 const ChangePasswordPage = lazy(() => import('./features/settings/ChangePasswordPage'))
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
+const AvailabilityPage = lazy(() => import('./features/availability/AvailabilityPage'))
 
 const theme = createTheme({
   palette: {
@@ -185,6 +186,14 @@ export default function App() {
                   element={
                     <Lazy>
                       <ChangePasswordPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="availability"
+                  element={
+                    <Lazy>
+                      <AvailabilityPage />
                     </Lazy>
                   }
                 />

@@ -23,6 +23,9 @@ import type {
   Transaction,
   TransactionStats,
   AppSettings,
+  ConsultationAvailability,
+  ConsultationDateOverride,
+  ConsultationDayHours,
   ZapiConnection,
   ZapiQrResponse,
 } from '../../types/admin'
@@ -86,6 +89,7 @@ export const medcoinAdminApi = createApi({
     'Me',
     'AuthReset',
     'Settings',
+    'Availability',
     'Zapi',
   ],
   endpoints: (builder) => ({
@@ -633,6 +637,49 @@ export const medcoinAdminApi = createApi({
       invalidatesTags: ['Settings', 'Overview', 'Transaction'],
     }),
 
+    getAvailability: builder.query<
+      ConsultationAvailability,
+      { from?: string; to?: string } | void
+    >({
+      query: (params) => ({
+        url: '/availability',
+        params: params
+          ? { ...(params.from ? { from: params.from } : {}), ...(params.to ? { to: params.to } : {}) }
+          : undefined,
+      }),
+      providesTags: ['Availability'],
+    }),
+    updateAvailability: builder.mutation<
+      ConsultationAvailability,
+      {
+        hours?: ConsultationDayHours[]
+        dateOverrides?: ConsultationDateOverride[]
+        from?: string
+        to?: string
+      }
+    >({
+      query: ({ from, to, ...body }) => ({
+        url: '/availability',
+        method: 'PATCH',
+        params: { ...(from ? { from } : {}), ...(to ? { to } : {}) },
+        body,
+      }),
+      invalidatesTags: ['Availability', 'Settings'],
+    }),
+    syncAvailabilityToCalendly: builder.mutation<
+      ConsultationAvailability,
+      { from?: string; to?: string } | void
+    >({
+      query: (params) => ({
+        url: '/availability/sync',
+        method: 'POST',
+        params: params
+          ? { ...(params.from ? { from: params.from } : {}), ...(params.to ? { to: params.to } : {}) }
+          : undefined,
+      }),
+      invalidatesTags: ['Availability'],
+    }),
+
     getZapiConnection: builder.query<ZapiConnection, void>({
       query: () => '/zapi/connection',
       providesTags: ['Zapi'],
@@ -688,6 +735,9 @@ export const {
   useUploadDoctorAvatarMutation,
   useGetSettingsQuery,
   useUpdateSettingsMutation,
+  useGetAvailabilityQuery,
+  useUpdateAvailabilityMutation,
+  useSyncAvailabilityToCalendlyMutation,
   useGetZapiConnectionQuery,
   useDisconnectZapiMutation,
   useLazyGetZapiQrCodeQuery,

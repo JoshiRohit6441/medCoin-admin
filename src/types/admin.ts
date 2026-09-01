@@ -37,6 +37,76 @@ export type LoginResponse = {
   token: string
 }
 
+export type CalendlyWeekday =
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+
+export type ConsultationDayHours = {
+  wday: CalendlyWeekday
+  enabled: boolean
+  from: string
+  to: string
+}
+
+/** Single-date exception: enabled=false closes the day, enabled=true replaces the weekly window. */
+export type ConsultationDateOverride = {
+  date: string
+  enabled: boolean
+  from: string
+  to: string
+  note?: string
+}
+
+export type AvailabilityBooking = {
+  start: string
+  end?: string
+  patientName?: string
+  patientPhone?: string
+  patientAge?: number | null
+  inviteeName?: string
+  inviteeEmail?: string
+  state?: string
+  severity?: string
+  summary?: string
+  bookingCode?: string
+  paymentStatus?: string
+  paymentMethod?: string
+  meetingUrl?: string
+  bookedAt?: string | null
+  eventName?: string
+  hosts?: string[]
+  inviteesActive?: number | null
+  inviteesLimit?: number | null
+  source: 'medcoin' | 'calendly'
+  sessionId?: string
+}
+
+export type ConsultationAvailability = {
+  hours: ConsultationDayHours[]
+  dateOverrides?: ConsultationDateOverride[]
+  timezone: string
+  syncedAt?: string | null
+  syncError?: string
+  hoursText?: string
+  exceptionsText?: string
+  slotsText?: string
+  slotsAvailable?: number
+  liveLookupFailed?: boolean
+  windowDays?: number
+  freeSlots?: string[]
+  rangeStart?: string
+  rangeEnd?: string
+  bookings?: AvailabilityBooking[]
+  bookingsError?: string
+  calendly?: { timezone?: string; rules?: unknown[]; error?: string }
+  sync?: { ok: boolean; error?: string }
+}
+
 export type AppSettings = {
   doctorWhatsappPhone: string
   whatsappBusinessPhone?: string
@@ -44,6 +114,8 @@ export type AppSettings = {
   consultationPriceCurrency: string
   consultationsPaused: boolean
   consultationsPausedMessage: string
+  consultationHours?: ConsultationDayHours[]
+  consultationHoursTimezone?: string
   sessionExpiryHours: number
   sessionExpiryWarnHours: number
   updatedAt?: string
