@@ -34,7 +34,12 @@ import {
   consultationStatusLabel,
   isActiveSessionStateFilter,
 } from '../../utils/consultationState'
-import { formatPatientAge } from '../../utils/patientDisplay'
+import {
+  consultationCpf,
+  consultationInviteeEmail,
+  formatCpfDisplay,
+  formatPatientAge,
+} from '../../utils/patientDisplay'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { buildDateRangeParams } from '../../utils/dateFormat'
@@ -167,7 +172,22 @@ const columns: GridColDef<Consultation>[] = [
     headerName: 'Patient',
     minWidth: 120,
     sortable: false,
-    valueGetter: (_v, row) => patientField(row, 'name') || '—',
+    valueGetter: (_v, row) => patientField(row, 'name') || row.calendlyInviteeName || '—',
+  },
+  {
+    field: 'inviteeEmail',
+    headerName: 'Email',
+    minWidth: 180,
+    flex: 0.4,
+    sortable: false,
+    valueGetter: (_v, row) => consultationInviteeEmail(row) || '—',
+  },
+  {
+    field: 'cpf',
+    headerName: 'CPF',
+    minWidth: 140,
+    sortable: false,
+    valueGetter: (_v, row) => formatCpfDisplay(consultationCpf(row)),
   },
   {
     field: 'patientAge',
@@ -222,6 +242,8 @@ const columns: GridColDef<Consultation>[] = [
 
 const MOBILE_CONSULTATION_COLUMN_VISIBILITY = {
   __serial: false,
+  inviteeEmail: false,
+  cpf: false,
   patientAge: false,
   patientPhone: false,
   bookingCode: false,
@@ -543,7 +565,16 @@ export default function ConsultationsPage() {
             ) : null}
             <div>
               <strong>Patient:</strong>{' '}
-              {patientField(detailQuery.data?.item ?? ({} as Consultation), 'name') || '—'}
+              {patientField(detailQuery.data?.item ?? ({} as Consultation), 'name') ||
+                detailQuery.data?.item.calendlyInviteeName ||
+                '—'}
+            </div>
+            <div>
+              <strong>Email:</strong>{' '}
+              {consultationInviteeEmail(detailQuery.data?.item) || '—'}
+            </div>
+            <div>
+              <strong>CPF:</strong> {formatCpfDisplay(consultationCpf(detailQuery.data?.item))}
             </div>
             <div>
               <strong>Age:</strong>{' '}

@@ -325,6 +325,14 @@ export default function AvailabilityPage() {
             </CardContent>
           </Card>
 
+          {data?.cpfQuestion && !data.cpfQuestion.ok ? (
+            <Alert severity="warning">
+              Calendly booking form does not have a CPF question yet. Add it in Calendly: Scheduling
+              → New Meeting → More options → Invitee form → + Add new question →{' '}
+              <strong>CPF (Cadastro de Pessoas Físicas)</strong> → Required → One line → Save
+              changes.
+            </Alert>
+          ) : null}
           {data?.syncError ? (
             <Alert severity="warning">Last Calendly sync failed: {data.syncError}</Alert>
           ) : null}

@@ -245,6 +245,12 @@ export default function DaySchedule({
   )
 }
 
+function formatCpfDisplay(value?: string | null) {
+  const digits = String(value || '').replace(/\D/g, '')
+  if (digits.length !== 11) return value || null
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
 function Field({ label, value }: { label: string; value?: string | number | null }) {
   if (value === null || value === undefined || value === '') return null
   return (
@@ -280,7 +286,9 @@ function BookingDetails({
           gap: 1.5,
         }}
       >
-        <Field label="Patient" value={booking.patientName || '—'} />
+        <Field label="Patient" value={booking.patientName || booking.inviteeName || '—'} />
+        <Field label="Email" value={booking.inviteeEmail || '—'} />
+        <Field label="CPF" value={formatCpfDisplay(booking.inviteeCpf) || '—'} />
         <Field label="WhatsApp" value={booking.patientPhone ? `+${booking.patientPhone}` : null} />
         <Field label="Age" value={booking.patientAge ?? null} />
         <Field label="Consultation state" value={booking.state || null} />
@@ -296,7 +304,6 @@ function BookingDetails({
           value={booking.bookedAt ? new Date(booking.bookedAt).toLocaleString() : null}
         />
         <Field label="Invitee" value={booking.inviteeName || null} />
-        <Field label="Invitee email" value={booking.inviteeEmail || null} />
         <Field label="Calendly event" value={booking.eventName || null} />
         <Field label="Host" value={booking.hosts?.length ? booking.hosts.join(', ') : null} />
         <Field label="Invitees" value={invitees} />

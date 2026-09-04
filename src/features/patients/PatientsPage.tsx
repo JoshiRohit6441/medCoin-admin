@@ -73,6 +73,17 @@ const columns: GridColDef<Patient & { __serial?: number }>[] = [
     type: 'string',
     renderCell: (params) => formatPatientAge(params.value),
   },
+  {
+    field: 'cpf',
+    headerName: 'CPF',
+    minWidth: 140,
+    flex: 0.35,
+    valueFormatter: (v) => {
+      const digits = String(v || '').replace(/\D/g, '')
+      if (digits.length !== 11) return v ? String(v) : '—'
+      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+    },
+  },
   dateTimeColumn('createdAt', 'Created'),
 ]
 
@@ -241,6 +252,14 @@ export default function PatientsPage() {
               </Typography>
               <Typography variant="body2">
                 <strong>Age:</strong> {formatPatientAgeWithUnit(detailQuery.data?.item.age)}
+              </Typography>
+              <Typography variant="body2">
+                <strong>CPF:</strong>{' '}
+                {(() => {
+                  const digits = String(detailQuery.data?.item.cpf || '').replace(/\D/g, '')
+                  if (digits.length !== 11) return detailQuery.data?.item.cpf || '—'
+                  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+                })()}
               </Typography>
               <Typography variant="body2">
                 <strong>Created:</strong> {formatDateTime(detailQuery.data?.item.createdAt)}

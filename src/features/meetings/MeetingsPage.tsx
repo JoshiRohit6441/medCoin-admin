@@ -31,7 +31,12 @@ import {
   useListMeetingsQuery,
 } from '../../store/api/medcoinAdminApi'
 import type { Consultation, DoctorMeeting } from '../../types/admin'
-import { formatPatientAge } from '../../utils/patientDisplay'
+import {
+  consultationCpf,
+  consultationInviteeEmail,
+  formatCpfDisplay,
+  formatPatientAge,
+} from '../../utils/patientDisplay'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import { buildDateRangeParams } from '../../utils/dateFormat'
@@ -119,6 +124,8 @@ function MeetLinkActions({
 
 const MOBILE_MEETING_COLUMN_VISIBILITY = {
   __serial: false,
+  inviteeEmail: false,
+  cpf: false,
   patientAge: false,
   severity: false,
   state: false,
@@ -213,7 +220,22 @@ export default function MeetingsPage() {
         headerName: 'Patient',
         minWidth: 140,
         flex: 0.5,
-        valueGetter: (_v, row) => patientField(row, 'name') || '—',
+        valueGetter: (_v, row) => patientField(row, 'name') || row.calendlyInviteeName || '—',
+      },
+      {
+        field: 'inviteeEmail',
+        headerName: 'Email',
+        minWidth: 180,
+        flex: 0.4,
+        sortable: false,
+        valueGetter: (_v, row) => consultationInviteeEmail(row) || '—',
+      },
+      {
+        field: 'cpf',
+        headerName: 'CPF',
+        minWidth: 140,
+        sortable: false,
+        valueGetter: (_v, row) => formatCpfDisplay(consultationCpf(row)),
       },
       {
         field: 'patientAge',
@@ -475,7 +497,16 @@ export default function MeetingsPage() {
               ) : null}
               <div>
                 <strong>Patient:</strong>{' '}
-                {patientField(detailQuery.data?.item ?? ({} as Consultation), 'name') || '—'}
+                {patientField(detailQuery.data?.item ?? ({} as Consultation), 'name') ||
+                  detailQuery.data?.item.calendlyInviteeName ||
+                  '—'}
+              </div>
+              <div>
+                <strong>Email:</strong>{' '}
+                {consultationInviteeEmail(detailQuery.data?.item) || '—'}
+              </div>
+              <div>
+                <strong>CPF:</strong> {formatCpfDisplay(consultationCpf(detailQuery.data?.item))}
               </div>
               <div>
                 <strong>Age:</strong>{' '}

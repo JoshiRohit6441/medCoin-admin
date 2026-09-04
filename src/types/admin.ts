@@ -70,6 +70,7 @@ export type AvailabilityBooking = {
   patientAge?: number | null
   inviteeName?: string
   inviteeEmail?: string
+  inviteeCpf?: string
   state?: string
   severity?: string
   summary?: string
@@ -104,6 +105,14 @@ export type ConsultationAvailability = {
   bookings?: AvailabilityBooking[]
   bookingsError?: string
   calendly?: { timezone?: string; rules?: unknown[]; error?: string }
+  cpfQuestion?: {
+    ok?: boolean
+    alreadyPresent?: boolean
+    required?: boolean
+    name?: string
+    hint?: string
+    error?: string
+  }
   sync?: { ok: boolean; error?: string }
 }
 
@@ -159,6 +168,7 @@ export type Patient = {
   phone: string
   name?: string
   age?: number | null
+  cpf?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -168,6 +178,7 @@ export type ConsultationPatientRef = {
   phone?: string
   name?: string
   age?: number | null
+  cpf?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -198,6 +209,7 @@ export type Consultation = {
   appointmentMeetingUrl?: string
   calendlyInviteeName?: string
   calendlyInviteeEmail?: string
+  calendlyInviteeCpf?: string
   matchedSeverityLevel?: string | MatchedSeverityRef | null
   suggestedConsultancyText?: string
   lastActivityAt?: string

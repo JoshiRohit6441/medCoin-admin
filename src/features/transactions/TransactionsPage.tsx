@@ -478,6 +478,14 @@ export default function TransactionsPage() {
                   : '—'}
               </div>
               <div>
+                <strong>CPF:</strong>{' '}
+                {(() => {
+                  const digits = String(item.calendlyInviteeCpf || '').replace(/\D/g, '')
+                  if (digits.length !== 11) return item.calendlyInviteeCpf || '—'
+                  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+                })()}
+              </div>
+              <div>
                 <strong>Meet link:</strong>{' '}
                 {item.appointmentMeetingUrl ? (
                   <a href={item.appointmentMeetingUrl} target="_blank" rel="noreferrer">
