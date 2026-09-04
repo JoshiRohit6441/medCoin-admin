@@ -240,6 +240,7 @@ export type Transaction = {
   appointmentMeetingUrl?: string
   calendlyInviteeName?: string
   calendlyInviteeEmail?: string
+  calendlyInviteeCpf?: string
   aiSummary?: string
   suggestedConsultancyText?: string
   matchedSeverityLevel?: MatchedSeverityRef | null

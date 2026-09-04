@@ -38,6 +38,7 @@ export function consultationCpf(row?: {
 }
 
 /** Opens WhatsApp chat with the patient (wa.me). Returns null if phone is too short. */
+export function buildWhatsAppChatUrl(phone: unknown): string | null {
   const digits = normalizePhoneDigits(phone)
   if (digits.length < 10) return null
   return `https://wa.me/${digits}`
