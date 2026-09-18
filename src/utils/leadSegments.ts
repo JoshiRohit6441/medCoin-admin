@@ -11,47 +11,51 @@ export type LeadSegmentId = (typeof LEAD_SEGMENT_IDS)[number]
 export const LEAD_SEGMENTS: {
   id: LeadSegmentId
   label: string
-  states: string[]
 }[] = [
-  {
-    id: 'triage_started',
-    label: 'Triage started',
-    states: ['STARTED', 'TRIAGE_IN_PROGRESS'],
-  },
-  {
-    id: 'triage_unpaid',
-    label: 'Triage completed, not paid',
-    states: ['TRIAGE_COMPLETED', 'PAYMENT_PENDING'],
-  },
-  {
-    id: 'paid',
-    label: 'Paid',
-    states: ['PAID', 'BOOKING_PENDING', 'BOOKED', 'DOCTOR_NOTIFIED'],
-  },
-  {
-    id: 'consultation_completed',
-    label: 'Consultation completed',
-    states: ['COMPLETED'],
-  },
-  {
-    id: 'inactive',
-    label: 'Inactive',
-    states: ['EXPIRED'],
-  },
+  { id: 'triage_started', label: 'Triage started' },
+  { id: 'triage_unpaid', label: 'Triage completed, not paid' },
+  { id: 'paid', label: 'Paid' },
+  { id: 'consultation_completed', label: 'Consultation completed' },
+  { id: 'inactive', label: 'Inactive' },
 ]
 
-const STATE_TO_SEGMENT = Object.fromEntries(
-  LEAD_SEGMENTS.flatMap((segment) => segment.states.map((state) => [state, segment.id])),
-) as Record<string, LeadSegmentId>
+const BOOKED_STATES = new Set(['BOOKED', 'DOCTOR_NOTIFIED'])
+
+function hasAppointment(session?: { appointmentStartAt?: string | null }): boolean {
+  const at = session?.appointmentStartAt
+  if (!at) return false
+  const time = new Date(at).getTime()
+  return Number.isFinite(time)
+}
+
+export function leadSegmentForSession(session?: {
+  state?: string
+  appointmentStartAt?: string | null
+  leadSegment?: string
+}): LeadSegmentId | '' {
+  if (session?.leadSegment && LEAD_SEGMENT_IDS.includes(session.leadSegment as LeadSegmentId)) {
+    return session.leadSegment as LeadSegmentId
+  }
+  const state = String(session?.state || '').trim()
+  if (state === 'STARTED' || state === 'TRIAGE_IN_PROGRESS') return 'triage_started'
+  if (state === 'TRIAGE_COMPLETED' || state === 'PAYMENT_PENDING') return 'triage_unpaid'
+  if (state === 'PAID' || state === 'BOOKING_PENDING') return 'paid'
+  if (BOOKED_STATES.has(state)) return 'consultation_completed'
+  if (state === 'EXPIRED') return 'inactive'
+  if (state === 'COMPLETED') {
+    return hasAppointment(session) ? 'consultation_completed' : 'inactive'
+  }
+  return ''
+}
+
+export function leadSegmentForState(state?: string): LeadSegmentId | '' {
+  return leadSegmentForSession({ state })
+}
 
 const LABEL_BY_ID = Object.fromEntries(LEAD_SEGMENTS.map((s) => [s.id, s.label])) as Record<
   LeadSegmentId,
   string
 >
-
-export function leadSegmentForState(state?: string): LeadSegmentId | '' {
-  return STATE_TO_SEGMENT[String(state || '').trim()] || ''
-}
 
 export function leadSegmentLabel(segment?: string | null): string {
   if (!segment) return '—'

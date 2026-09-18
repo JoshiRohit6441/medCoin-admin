@@ -1,4 +1,5 @@
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import {
   Alert,
   Box,
@@ -16,14 +17,16 @@ import ManageColumnsButton from '../../components/dataGrid/ManageColumnsButton'
 import ListFilterBar from '../../components/forms/ListFilterBar'
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { useIsMobile } from '../../hooks/useBreakpoint'
+import { ADMIN_API_BASE } from '../../config/api'
 import { useGetLeadsSummaryQuery, useListLeadsQuery } from '../../store/api/medcoinAdminApi'
+import { readStoredAccessToken } from '../../store/slices/authSlice'
 import type { Consultation } from '../../types/admin'
 import { dataGridHeight, dataGridSx, useResponsiveColumnVisibility } from '../../utils/dataGridMobile'
 import { getErrorMessage } from '../../utils/errorMessage'
 import {
   LEAD_SEGMENTS,
   type LeadSegmentId,
-  leadSegmentForState,
+  leadSegmentForSession,
   leadSegmentLabel,
 } from '../../utils/leadSegments'
 import { consultationStateLabel } from '../../utils/consultationState'
@@ -55,7 +58,7 @@ function segmentChipColor(segment: string): ChipProps['color'] {
 }
 
 function resolveSegment(row: Consultation): string {
-  return row.leadSegment || leadSegmentForState(row.state) || ''
+  return leadSegmentForSession(row) || ''
 }
 
 const MOBILE_LEAD_COLUMN_VISIBILITY = {
@@ -91,6 +94,9 @@ export default function LeadsPage() {
     hasSearchInput,
   } = useDebouncedSearch()
 
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
+
   const sort = sortModel[0]
   const { data: summary } = useGetLeadsSummaryQuery()
   const { data, isError, error, refetch, isFetching } = useListLeadsQuery({
@@ -117,6 +123,46 @@ export default function LeadsPage() {
     if (!next) params.delete('segment')
     else params.set('segment', next)
     setSearchParams(params, { replace: true })
+  }
+
+  async function exportCsv() {
+    setExportError('')
+    setExporting(true)
+    try {
+      const qs = new URLSearchParams()
+      if (activeSegment) qs.set('segment', activeSegment)
+      if (debouncedSearch) {
+        qs.set('search', debouncedSearch)
+        qs.set('q', debouncedSearch)
+      }
+      const sortField = sortModel[0]?.field
+      const sortOrder = sortModel[0]?.sort
+      if (sortField) qs.set('sortBy', sortField)
+      if (sortOrder) qs.set('sortOrder', sortOrder)
+
+      const token = readStoredAccessToken()
+      const res = await fetch(`${ADMIN_API_BASE}/leads/export?${qs.toString()}`, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) {
+        throw new Error(`Export failed (${res.status})`)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const stamp = new Date().toISOString().slice(0, 10)
+      a.href = url
+      a.download = `leads-${activeSegment || 'all'}-${stamp}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(getErrorMessage(err))
+    } finally {
+      setExporting(false)
+    }
   }
 
   const columns: GridColDef<Consultation & { __serial: number }>[] = useMemo(
@@ -217,6 +263,14 @@ export default function LeadsPage() {
         <Button {...pageButtonProps} onClick={() => void refetch()} disabled={isFetching}>
           Refresh
         </Button>
+        <Button
+          {...pageButtonProps}
+          startIcon={<FileDownloadOutlinedIcon sx={{ fontSize: 18 }} />}
+          onClick={() => void exportCsv()}
+          disabled={exporting || isFetching}
+        >
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </Button>
       </Box>
 
       <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -252,6 +306,7 @@ export default function LeadsPage() {
       />
 
       {isError ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
+      {exportError ? <Alert severity="error">{exportError}</Alert> : null}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
         <ManageColumnsButton apiRef={apiRef} />
       </Box>
@@ -262,7 +317,11 @@ export default function LeadsPage() {
           columns={columns}
           columnVisibilityModel={columnVisibilityModel}
           onColumnVisibilityModelChange={onColumnVisibilityModelChange}
-          getRowId={(r) => r._id}
+          getRowId={(r) =>
+            r.patient && typeof r.patient === 'object' && r.patient._id
+              ? String(r.patient._id)
+              : r._id
+          }
           loading={isFetching}
           rowCount={data?.pagination.total ?? 0}
           paginationMode="server"
