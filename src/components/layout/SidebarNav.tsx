@@ -2,6 +2,7 @@ import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutl
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
@@ -49,6 +50,7 @@ export const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true, icon: DashboardOutlinedIcon },
   { to: '/patients', label: 'Patients', icon: GroupsOutlinedIcon },
   { to: '/consultations', label: 'Consultations', icon: LocalHospitalOutlinedIcon },
+  { to: '/leads', label: 'Leads', icon: CampaignOutlinedIcon },
   { to: '/meetings', label: 'Doctor meetings', icon: EventAvailableOutlinedIcon },
   { to: '/transactions', label: 'Transactions', icon: PaymentsOutlinedIcon },
   { to: '/doctors', label: 'Doctors', icon: MedicalServicesOutlinedIcon },

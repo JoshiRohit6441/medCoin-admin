@@ -210,6 +210,7 @@ export type Consultation = {
   calendlyInviteeName?: string
   calendlyInviteeEmail?: string
   calendlyInviteeCpf?: string
+  leadSegment?: string
   matchedSeverityLevel?: string | MatchedSeverityRef | null
   suggestedConsultancyText?: string
   lastActivityAt?: string
@@ -334,6 +335,11 @@ export type MeetingsSummary = {
   upcoming: number
   past: number
   total: number
+}
+
+export type LeadsSummary = {
+  total: number
+  counts: Record<string, number>
 }
 
 export type ListQueryParams = {

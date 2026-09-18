@@ -13,6 +13,7 @@ import type {
   Consultation,
   DoctorMeeting,
   MeetingsSummary,
+  LeadsSummary,
   ListResponse,
   ListQueryParams,
   LoginResponse,
@@ -265,6 +266,7 @@ export const medcoinAdminApi = createApi({
         search?: string
         q?: string
         activeOnly?: boolean
+        segment?: string
       } | void
     >({
       query: (params) => {
@@ -291,6 +293,34 @@ export const medcoinAdminApi = createApi({
     getConsultation: builder.query<{ item: Consultation }, string>({
       query: (id) => `/consultations/${id}`,
       providesTags: (_r, _e, id) => [{ type: 'Consultation', id }],
+    }),
+    getLeadsSummary: builder.query<LeadsSummary, void>({
+      query: () => '/leads/summary',
+      providesTags: ['Consultation'],
+    }),
+    listLeads: builder.query<
+      ListResponse<Consultation>,
+      {
+        page?: number
+        limit?: number
+        sortBy?: string
+        sortOrder?: string
+        segment?: string
+        search?: string
+        q?: string
+      } | void
+    >({
+      query: (params) => ({ url: '/leads', params: params ?? {} }),
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.items.map((c) => ({
+                type: 'Consultation' as const,
+                id: c._id,
+              })),
+              { type: 'Consultation', id: 'LIST' },
+            ]
+          : [{ type: 'Consultation', id: 'LIST' }],
     }),
     getMeetingsSummary: builder.query<MeetingsSummary, void>({
       query: () => '/meetings/summary',
@@ -711,6 +741,8 @@ export const {
   useGetPatientQuery,
   useListConsultationsQuery,
   useGetConsultationQuery,
+  useGetLeadsSummaryQuery,
+  useListLeadsQuery,
   useGetMeetingsSummaryQuery,
   useListMeetingsQuery,
   useGetTransactionStatsQuery,

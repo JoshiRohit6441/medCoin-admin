@@ -15,6 +15,7 @@ const ResetPasswordPage = lazy(() => import('./components/auth/ResetPasswordPage
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'))
 const PatientsPage = lazy(() => import('./features/patients/PatientsPage'))
 const ConsultationsPage = lazy(() => import('./features/consultations/ConsultationsPage'))
+const LeadsPage = lazy(() => import('./features/leads/LeadsPage'))
 const MeetingsPage = lazy(() => import('./features/meetings/MeetingsPage'))
 const TransactionsPage = lazy(() => import('./features/transactions/TransactionsPage'))
 const DoctorsPage = lazy(() => import('./features/doctors/DoctorsPage'))
@@ -138,6 +139,14 @@ export default function App() {
                   element={
                     <Lazy>
                       <ConsultationsPage />
+                    </Lazy>
+                  }
+                />
+                <Route
+                  path="leads"
+                  element={
+                    <Lazy>
+                      <LeadsPage />
                     </Lazy>
                   }
                 />
